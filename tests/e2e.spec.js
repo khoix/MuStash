@@ -10,6 +10,7 @@ async function uploadPng(page, password = '') {
   if (password) await page.getByTestId('password-input').fill(password);
   await page.getByTestId('stash-button').click();
   await expect(page.getByTestId('result-card')).toBeVisible();
+  await expect(page.getByTestId('share-url')).not.toHaveValue('');
   return page.getByTestId('share-url').inputValue();
 }
 
