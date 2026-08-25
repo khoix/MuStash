@@ -50,11 +50,37 @@ test('rejects unsupported files server-side', async ({ page }) => {
   await expect(page.getByTestId('result-card')).toBeHidden();
 });
 
-test('theme preference persists', async ({ page }) => {
+test('hamburger menu exposes theme toggle and future settings', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Toggle light and dark mode' }).click();
+  const menuToggle = page.getByTestId('menu-toggle');
+  const menu = page.locator('#appMenu');
+
+  await expect(menu).toBeHidden();
+  await menuToggle.click();
+  await expect(menu).toBeVisible();
+  await expect(menuToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('theme-toggle')).toBeVisible();
+  await expect(page.getByTestId('settings-item')).toBeDisabled();
+  await expect(page.getByTestId('settings-item')).toContainText('Soon');
+
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('theme preference persists from menu toggle', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('menu-toggle').click();
+  const toggle = page.getByTestId('theme-toggle');
+  const initialPressed = await toggle.getAttribute('aria-pressed');
+  await toggle.click();
+
   const theme = await page.locator('html').getAttribute('data-theme');
   expect(['light', 'dark']).toContain(theme);
+  await expect(toggle).toHaveAttribute('aria-pressed', initialPressed === 'true' ? 'false' : 'true');
+
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  await page.getByTestId('menu-toggle').click();
+  await expect(page.getByTestId('theme-toggle')).toHaveAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
 });

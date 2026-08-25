@@ -18,9 +18,23 @@
       <img src="/icons/mustash.svg" alt="" width="38" height="38">
       <span>MuStash</span>
     </a>
-    <button class="icon-button" id="themeToggle" type="button" aria-label="Toggle light and dark mode" title="Toggle theme">
-      <span aria-hidden="true">◐</span>
-    </button>
+    <div class="menu-wrap">
+      <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-haspopup="true" aria-expanded="false" aria-controls="appMenu" data-testid="menu-toggle">
+        <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <nav class="app-menu" id="appMenu" aria-label="App menu" hidden>
+        <button class="menu-item theme-menu-item" id="themeToggle" type="button" aria-pressed="false" data-testid="theme-toggle">
+          <span class="menu-icon" aria-hidden="true">☾</span>
+          <span class="menu-copy"><strong>Dark mode</strong><small>Switch appearance</small></span>
+          <span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>
+        </button>
+        <button class="menu-item" type="button" disabled aria-disabled="true" aria-label="Settings, coming soon" data-testid="settings-item">
+          <span class="menu-icon" aria-hidden="true">⚙</span>
+          <span class="menu-copy"><strong>Settings</strong><small>More options later</small></span>
+          <span class="soon-pill" aria-hidden="true">Soon</span>
+        </button>
+      </nav>
+    </div>
   </header>
 
   <main class="shell">
