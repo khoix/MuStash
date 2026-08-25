@@ -1,5 +1,15 @@
 # MuStash release notes
 
+## 0.1.1 — 2026-08-24
+
+### Changed
+
+- Replaced the standalone theme button with a hamburger app menu on both the landing and share pages.
+- Moved appearance control into the menu as a single persistent dark-mode toggle.
+- Added a disabled **Settings** menu item marked **Soon** as a placeholder for future configurables.
+- Added menu accessibility behavior for expanded/pressed state, Escape dismissal, and outside-click dismissal.
+- Expanded Playwright desktop/mobile E2E coverage for the hamburger menu, settings placeholder, theme toggle, and persisted appearance preference.
+
 ## 0.1.0 — 2026-08-24
 
 Initial MVP.
