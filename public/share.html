@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111315" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>MuStash share</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/share.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="MuStash home">
+      <img src="/icons/mustash.svg" alt="" width="38" height="38">
+      <span>MuStash</span>
+    </a>
+    <button class="icon-button" id="themeToggle" type="button" aria-label="Toggle light and dark mode" title="Toggle theme"><span aria-hidden="true">◐</span></button>
+  </header>
+
+  <main class="shell share-shell">
+    <section class="card share-card" id="shareCard">
+      <div id="loadingState" class="center-state">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Opening stash…</p>
+      </div>
+
+      <div id="expiredState" class="center-state" hidden>
+        <div class="big-mark" aria-hidden="true">〰</div>
+        <h1>This stash is gone.</h1>
+        <p>It expired or no longer exists.</p>
+        <a class="primary-button link-button" href="/">Make a new stash</a>
+      </div>
+
+      <form id="unlockForm" class="unlock-form" hidden>
+        <div class="big-mark" aria-hidden="true">⌁</div>
+        <h1>Protected stash</h1>
+        <p>Enter the password to preview this media.</p>
+        <label class="field">
+          <span>Password</span>
+          <input id="unlockPassword" type="password" minlength="8" maxlength="128" autocomplete="current-password" required data-testid="unlock-password">
+        </label>
+        <button class="primary-button" type="submit" data-testid="unlock-button">Unlock</button>
+        <p class="status" id="unlockStatus" role="status" aria-live="polite"></p>
+      </form>
+
+      <div id="mediaState" hidden data-testid="media-state">
+        <div class="media-heading">
+          <div>
+            <p class="eyebrow">Temporary share</p>
+            <h1 id="fileName">Media</h1>
+            <p id="metaLine"></p>
+          </div>
+          <span class="protected-pill" id="protectedPill" hidden>Protected</span>
+        </div>
+        <div class="media-frame" id="mediaFrame"></div>
+        <div class="button-row share-actions">
+          <button class="primary-button" id="shareButton" type="button">Share</button>
+          <a class="secondary-button link-button" id="downloadButton">Download</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

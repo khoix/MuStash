@@ -1,0 +1,26 @@
+{
+  "name": "mustash",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal temporary media sharing with expiring links.",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "express-rate-limit": "8.6.2",
+    "file-type": "22.0.2",
+    "helmet": "8.3.0",
+    "multer": "2.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
