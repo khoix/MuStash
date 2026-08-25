@@ -12,6 +12,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Native Web Share API support (iOS share sheet / Android share sheet), with clipboard fallback.
 - Optional password-derived share links.
 - Light, dark, and system-aware presentation.
+- Hamburger app menu with a single persistent dark-mode toggle and a reserved Settings slot for future configurables.
 - Responsive, touch-friendly UI.
 - Favicon and 180×180 Apple touch icon.
 - Automatic expiry cleanup plus expiry enforcement on every access.
@@ -91,7 +92,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, menu behavior, the future Settings placeholder, and persisted appearance preferences.
 
 ## Storage lifecycle
 
