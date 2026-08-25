@@ -8,7 +8,8 @@
 - Moved appearance control into the menu as a single persistent dark-mode toggle.
 - Added a disabled **Settings** menu item marked **Soon** as a placeholder for future configurables.
 - Added menu accessibility behavior for expanded/pressed state, Escape dismissal, and outside-click dismissal.
-- Expanded Playwright desktop/mobile E2E coverage for the hamburger menu, settings placeholder, theme toggle, and persisted appearance preference.
+- Mobile now uses only the native file picker; drag-and-drop upload is shown and enabled only for desktop-style fine-pointer/hover devices.
+- Expanded Playwright desktop/mobile E2E coverage for the hamburger menu, settings placeholder, theme toggle, persisted appearance preference, and desktop-only drag/drop behavior.
 
 ## 0.1.0 — 2026-08-24
 
