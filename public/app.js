@@ -6,6 +6,7 @@ initTheme();
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
 const dropzone = document.getElementById('dropzone');
+const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
 const ttlInput = document.getElementById('ttlHours');
 const passwordInput = document.getElementById('password');
@@ -21,30 +22,12 @@ const limitText = document.getElementById('limitText');
 
 let previewUrl = null;
 let config = { maxFileMb: 100, maxTtlHours: 168, defaultTtlHours: 24 };
+const desktopDragQuery = matchMedia('(min-width: 621px) and (hover: hover) and (pointer: fine)');
 
 loadConfig();
 fileInput.addEventListener('change', () => renderLocalPreview(fileInput.files[0]));
-
-for (const eventName of ['dragenter', 'dragover']) {
-  dropzone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    dropzone.classList.add('dragging');
-  });
-}
-for (const eventName of ['dragleave', 'drop']) {
-  dropzone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    dropzone.classList.remove('dragging');
-  });
-}
-dropzone.addEventListener('drop', (event) => {
-  const [file] = event.dataTransfer.files;
-  if (!file) return;
-  const transfer = new DataTransfer();
-  transfer.items.add(file);
-  fileInput.files = transfer.files;
-  renderLocalPreview(file);
-});
+configureDragAndDrop();
+desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -116,6 +99,42 @@ shareButton.addEventListener('click', async () => {
     setStatus('Share URL copied to your clipboard.');
   }
 });
+
+function configureDragAndDrop() {
+  const enabled = desktopDragQuery.matches;
+  dropzone.dataset.dragEnabled = String(enabled);
+  dropHint.hidden = !enabled;
+
+  for (const eventName of ['dragenter', 'dragover', 'dragleave', 'drop']) {
+    dropzone.removeEventListener(eventName, handleDragEvent);
+  }
+  dropzone.removeEventListener('drop', handleDrop);
+
+  if (!enabled) {
+    dropzone.classList.remove('dragging');
+    return;
+  }
+
+  for (const eventName of ['dragenter', 'dragover', 'dragleave', 'drop']) {
+    dropzone.addEventListener(eventName, handleDragEvent);
+  }
+  dropzone.addEventListener('drop', handleDrop);
+}
+
+function handleDragEvent(event) {
+  event.preventDefault();
+  if (event.type === 'dragenter' || event.type === 'dragover') dropzone.classList.add('dragging');
+  else dropzone.classList.remove('dragging');
+}
+
+function handleDrop(event) {
+  const [file] = event.dataTransfer?.files || [];
+  if (!file) return;
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  fileInput.files = transfer.files;
+  renderLocalPreview(file);
+}
 
 async function loadConfig() {
   try {

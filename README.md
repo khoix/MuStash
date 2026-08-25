@@ -14,6 +14,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Light, dark, and system-aware presentation.
 - Hamburger app menu with a single persistent dark-mode toggle and a reserved Settings slot for future configurables.
 - Responsive, touch-friendly UI.
+- Native file picker on mobile; drag-and-drop upload is enabled only for desktop-style fine-pointer/hover devices.
 - Favicon and 180×180 Apple touch icon.
 - Automatic expiry cleanup plus expiry enforcement on every access.
 - Playwright E2E coverage for desktop and mobile Chromium, run in GitHub Actions.
@@ -92,7 +93,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, menu behavior, the future Settings placeholder, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, and persisted appearance preferences.
 
 ## Storage lifecycle
 

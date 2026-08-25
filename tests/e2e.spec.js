@@ -50,6 +50,17 @@ test('rejects unsupported files server-side', async ({ page }) => {
   await expect(page.getByTestId('result-card')).toBeHidden();
 });
 
+test('drag and drop is offered only on desktop', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const desktop = testInfo.project.name === 'chromium';
+  const dropzone = page.locator('#dropzone');
+  const dropHint = page.getByTestId('drop-hint');
+
+  await expect(dropzone).toHaveAttribute('data-drag-enabled', String(desktop));
+  if (desktop) await expect(dropHint).toBeVisible();
+  else await expect(dropHint).toBeHidden();
+});
+
 test('hamburger menu exposes theme toggle and future settings', async ({ page }) => {
   await page.goto('/');
   const menuToggle = page.getByTestId('menu-toggle');
