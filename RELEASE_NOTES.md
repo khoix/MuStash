@@ -1,5 +1,22 @@
 # MuStash release notes
 
+## 0.1.2 — 2026-08-25
+
+### Added
+
+- CommonJS mount entry (`server.cjs`) and exportable `createApp()` so MuStash can be served under main-server at `/mustash`.
+- Relative frontend asset/API paths and a `/mustash` → `/mustash/` redirect so CSS/JS resolve correctly when mounted.
+- Custom TTL up/down steppers beside the hours field; native number spinners are hidden.
+- Right-aligned lock icon inside the optional password field.
+- Settings grid column ratio of 1/3 (TTL) and 2/3 (password).
+
+### Changed
+
+- Helmet no longer forces HTTPS upgrades or HSTS, so the UI works over plain HTTP (LAN / reverse proxy).
+- Unlock cookie paths and `contentUrl` values respect Express `req.baseUrl` when mounted under a prefix.
+- If `MUSTASH_SECRET` is unset, a persistent secret is written to `DATA_DIR/.mustash-secret` instead of failing in production.
+- Expanded Playwright coverage for TTL steppers and the password lock icon.
+
 ## 0.1.1 — 2026-08-24
 
 ### Changed

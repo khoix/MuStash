@@ -47,7 +47,7 @@ shareButton.addEventListener('click', async () => {
 
 async function init() {
   try {
-    const response = await fetch(`/api/shares/${encodeURIComponent(id)}`);
+    const response = await fetch(`../api/shares/${encodeURIComponent(id)}`);
     if (!response.ok) return showExpired();
     meta = await response.json();
     document.title = `${meta.originalName} · MuStash`;
@@ -74,7 +74,7 @@ async function init() {
 }
 
 async function unlock(accessKey) {
-  const response = await fetch(`/api/shares/${encodeURIComponent(id)}/unlock`, {
+  const response = await fetch(`../api/shares/${encodeURIComponent(id)}/unlock`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ accessKey })

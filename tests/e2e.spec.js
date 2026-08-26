@@ -95,3 +95,22 @@ test('theme preference persists from menu toggle', async ({ page }) => {
   await page.getByTestId('menu-toggle').click();
   await expect(page.getByTestId('theme-toggle')).toHaveAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
 });
+
+test('ttl steppers adjust hours beside the input-suffix field', async ({ page }) => {
+  await page.goto('/');
+  const ttl = page.getByTestId('ttl-input');
+  await ttl.fill('2');
+  await page.getByRole('button', { name: 'Increase hours' }).click();
+  await expect(ttl).toHaveValue('2.25');
+  await page.getByRole('button', { name: 'Decrease hours' }).click();
+  await expect(ttl).toHaveValue('2');
+  await expect(page.locator('.number-steppers')).toBeVisible();
+  await expect(page.locator('.ttl-control .input-suffix')).toBeVisible();
+});
+
+test('password field shows a right-aligned lock icon', async ({ page }) => {
+  await page.goto('/');
+  const wrap = page.locator('.input-with-icon');
+  await expect(wrap.getByTestId('password-input')).toBeVisible();
+  await expect(wrap.locator('.field-icon svg')).toBeVisible();
+});
