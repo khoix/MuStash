@@ -151,3 +151,13 @@ test('password field shows a right-aligned lock icon', async ({ page }) => {
   await expect(wrap.getByTestId('password-input')).toBeVisible();
   await expect(wrap.locator('.field-icon svg')).toBeVisible();
 });
+
+test('Guard Lab is reachable and can trigger the black overlay manually', async ({ page }) => {
+  await page.goto('/testlab/');
+  await expect(page.getByTestId('guard-lab')).toBeVisible();
+  const overlay = page.getByTestId('guard-overlay');
+  await expect(overlay).not.toHaveClass(/active/);
+  await page.getByTestId('manual-guard').click();
+  await expect(overlay).toHaveClass(/active/);
+  await expect(page.locator('#eventLog')).toContainText('GUARD: manual test');
+});

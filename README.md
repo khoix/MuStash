@@ -47,6 +47,22 @@ When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with
 
 These controls are **deterrents, not DRM**. A browser must receive media bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording.
 
+### Guard Lab
+
+An experimental sensor test page is available at `/testlab/` when MuStash runs standalone, or `/mustash/testlab/` when mounted under main-server.
+
+The Guard Lab is intentionally isolated from normal share behavior. It is used to test whether physical volume-button presses can be inferred quickly enough from browser-visible side channels to trigger a black capture guard. It currently measures:
+
+- high-frequency carrier-amplitude changes through the speaker-to-microphone path,
+- sudden broadband microphone-energy transients,
+- device-motion impulses,
+- any `AudioVolumeUp` / `AudioVolumeDown` style key event a browser happens to expose,
+- timing from detector trigger to guard class application and the next animation frame.
+
+Starting the sensor test may require microphone permission and, on iOS, motion permission. Microphone samples are processed locally with an `AudioWorklet`; MuStash does not upload or store them. The lab also includes a permission-free manual black-guard button so compositor behavior can be tested separately from sensor detection.
+
+Results are expected to vary by phone, browser, hardware volume level, microphone processing, and environment. The Guard Lab is experimental instrumentation, not production screenshot protection.
+
 ### Password-protected links
 
 The raw password never leaves the browser.
@@ -121,7 +137,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, persisted appearance preferences, and Guard Lab route/manual-overlay behavior.
 
 ## Storage lifecycle
 
