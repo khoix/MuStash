@@ -28,6 +28,9 @@ loadConfig();
 fileInput.addEventListener('change', () => renderLocalPreview(fileInput.files[0]));
 configureDragAndDrop();
 desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
+document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
+  button.addEventListener('click', () => stepTtl(Number(button.dataset.dir)));
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -63,11 +66,11 @@ form.addEventListener('submit', async (event) => {
       data.append('linkSalt', linkSalt);
     }
 
-    const response = await fetch('/api/shares', { method: 'POST', body: data });
+    const response = await fetch('api/shares', { method: 'POST', body: data });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'Upload failed.');
 
-    const shareUrl = new URL(`/s/${payload.id}`, location.origin);
+    const shareUrl = new URL(`s/${payload.id}`, location.href);
     if (accessKey) shareUrl.hash = `k=${encodeURIComponent(accessKey)}`;
     shareUrlInput.value = shareUrl.href;
     openButton.href = shareUrl.href;
@@ -138,13 +141,24 @@ function handleDrop(event) {
 
 async function loadConfig() {
   try {
-    const response = await fetch('/api/config');
+    const response = await fetch('api/config');
     if (!response.ok) return;
     config = await response.json();
     ttlInput.max = String(config.maxTtlHours);
     ttlInput.value = String(config.defaultTtlHours);
     limitText.textContent = `Images, audio, or video · up to ${config.maxFileMb} MB`;
   } catch {}
+}
+
+function stepTtl(direction) {
+  const step = Number(ttlInput.step) || 0.25;
+  const min = Number(ttlInput.min) || 0.25;
+  const max = Number(ttlInput.max) || config.maxTtlHours;
+  const current = Number(ttlInput.value);
+  const base = Number.isFinite(current) ? current : config.defaultTtlHours;
+  const next = Math.min(max, Math.max(min, Math.round((base + direction * step) * 100) / 100));
+  ttlInput.value = String(next);
+  ttlInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function renderLocalPreview(file) {
