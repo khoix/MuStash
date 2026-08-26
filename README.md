@@ -11,6 +11,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Image, video, and audio previews on desktop and mobile.
 - Native Web Share API support (iOS share sheet / Android share sheet), with clipboard fallback.
 - Optional password-derived share links (lock icon in the password field).
+- Per-share **Allow Download** control, enabled by default; preview-only shares hide the download action and reject explicit attachment requests server-side.
 - Light, dark, and system-aware presentation.
 - Hamburger app menu with a single persistent dark-mode toggle and a reserved Settings slot for future configurables.
 - Responsive, touch-friendly UI.
@@ -32,6 +33,19 @@ MuStash intentionally does **not** trust filenames or browser-provided MIME type
 - Upload and unlock endpoints are rate-limited and reject cross-site browser POSTs.
 - Metadata files are written atomically.
 - Protected content requires a short-lived, HttpOnly, SameSite authorization cookie before media can be fetched. There are no user accounts or server-side sessions.
+
+### Preview-only shares
+
+When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with the share and treats the media as preview-only:
+
+- The recipient-facing Download button is removed.
+- Requests using `?download=1` are rejected with HTTP `403`.
+- The content endpoint uses `Content-Disposition: inline` and `Cache-Control: no-store`.
+- The viewer disables media dragging and suppresses the media context menu.
+- Audio/video elements request browser controls that omit download and remote-playback actions, and disable Picture-in-Picture / remote playback where the browser exposes those controls.
+- Mobile touch-callout and image dragging are suppressed where supported.
+
+These controls are **deterrents, not DRM**. A browser must receive media bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording.
 
 ### Password-protected links
 
@@ -107,7 +121,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, and persisted appearance preferences.
 
 ## Storage lifecycle
 

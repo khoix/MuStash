@@ -1,5 +1,20 @@
 # MuStash release notes
 
+## Unreleased — 2026-08-26
+
+### Added
+
+- Added an **Allow Download** upload option, enabled by default for backward-compatible sharing behavior.
+- Preview-only shares now expose a **Preview only** indicator instead of a Download action.
+
+### Security / behavior
+
+- Shares created with **Allow Download** disabled reject explicit `?download=1` attachment requests with HTTP `403`.
+- Preview-only media is served inline with no-store caching and browser-level deterrents for dragging, context-menu saving, remote playback, Picture-in-Picture, and mobile touch callout where supported.
+- Existing metadata that predates the `allowDownload` field continues to allow downloads by default.
+- Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed media bytes can still be recovered by a determined recipient.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, and client-side preview deterrents.
+
 ## 0.1.2 — 2026-08-25
 
 ### Added

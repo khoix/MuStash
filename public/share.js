@@ -14,6 +14,7 @@ const mediaFrame = document.getElementById('mediaFrame');
 const fileName = document.getElementById('fileName');
 const metaLine = document.getElementById('metaLine');
 const protectedPill = document.getElementById('protectedPill');
+const previewOnlyPill = document.getElementById('previewOnlyPill');
 const shareButton = document.getElementById('shareButton');
 const downloadButton = document.getElementById('downloadButton');
 
@@ -86,16 +87,21 @@ async function unlock(accessKey) {
 }
 
 async function showMedia() {
+  const allowDownload = meta.allowDownload !== false;
   loadingState.hidden = true;
   unlockForm.hidden = true;
   mediaState.hidden = false;
   fileName.textContent = meta.originalName;
   metaLine.textContent = `${formatBytes(meta.size)} · expires ${new Date(meta.expiresAt).toLocaleString()}`;
-  downloadButton.href = `${meta.contentUrl}?download=1`;
-  mediaFrame.replaceChildren(createMedia(meta.mime, meta.contentUrl));
+  previewOnlyPill.hidden = allowDownload;
+  downloadButton.hidden = !allowDownload;
+  if (allowDownload) downloadButton.href = `${meta.contentUrl}?download=1`;
+  else downloadButton.removeAttribute('href');
+  mediaFrame.classList.toggle('preview-only', !allowDownload);
+  mediaFrame.replaceChildren(createMedia(meta.mime, meta.contentUrl, allowDownload));
 }
 
-function createMedia(type, src) {
+function createMedia(type, src, allowDownload) {
   let element;
   if (type.startsWith('image/')) {
     element = document.createElement('img');
@@ -112,7 +118,24 @@ function createMedia(type, src) {
   }
   element.src = src;
   element.dataset.testid = 'media-preview';
+  if (!allowDownload) applyPreviewOnlyProtections(element);
   return element;
+}
+
+function applyPreviewOnlyProtections(element) {
+  element.draggable = false;
+  element.addEventListener('dragstart', preventDefault);
+  element.addEventListener('contextmenu', preventDefault);
+
+  if (element instanceof HTMLMediaElement) {
+    element.setAttribute('controlslist', 'nodownload noremoteplayback');
+    if ('disableRemotePlayback' in element) element.disableRemotePlayback = true;
+    if ('disablePictureInPicture' in element) element.disablePictureInPicture = true;
+  }
+}
+
+function preventDefault(event) {
+  event.preventDefault();
 }
 
 function showExpired() {

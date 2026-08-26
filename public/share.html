@@ -70,12 +70,15 @@
             <h1 id="fileName">Media</h1>
             <p id="metaLine"></p>
           </div>
-          <span class="protected-pill" id="protectedPill" hidden>Protected</span>
+          <div class="pill-row">
+            <span class="protected-pill" id="protectedPill" hidden>Protected</span>
+            <span class="protected-pill preview-only-pill" id="previewOnlyPill" hidden data-testid="preview-only-pill">Preview only</span>
+          </div>
         </div>
         <div class="media-frame" id="mediaFrame"></div>
         <div class="button-row share-actions">
           <button class="primary-button" id="shareButton" type="button">Share</button>
-          <a class="secondary-button link-button" id="downloadButton">Download</a>
+          <a class="secondary-button link-button" id="downloadButton" data-testid="download-button">Download</a>
         </div>
       </div>
     </section>

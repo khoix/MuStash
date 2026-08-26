@@ -147,6 +147,11 @@ export async function createApp() {
         return res.status(400).json({ error: `Expiration must be between 0.25 and ${MAX_TTL_HOURS} hours.` });
       }
 
+      const allowDownload = parseAllowDownload(req.body.allowDownload);
+      if (allowDownload === null) {
+        return res.status(400).json({ error: 'Invalid download preference.' });
+      }
+
       const accessKey = String(req.body.accessKey || '');
       const linkSalt = String(req.body.linkSalt || '');
       const protectedShare = accessKey.length > 0 || linkSalt.length > 0;
@@ -175,6 +180,7 @@ export async function createApp() {
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + ttlHours * 60 * 60 * 1000).toISOString(),
         protected: protectedShare,
+        allowDownload,
         linkSalt: protectedShare ? linkSalt : null,
         auth
       };
@@ -241,11 +247,20 @@ export async function createApp() {
         return res.status(401).send('Unlock required.');
       }
 
+      const allowDownload = meta.allowDownload !== false;
       const download = req.query.download === '1';
+      if (download && !allowDownload) {
+        res.set('Cache-Control', 'private, no-store, max-age=0');
+        return res.status(403).send('Downloads are disabled for this stash.');
+      }
+
       res.set({
         'Content-Type': meta.mime,
-        'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeRFC5987(meta.originalName)}`,
+        'Content-Disposition': allowDownload
+          ? `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeRFC5987(meta.originalName)}`
+          : 'inline',
         'Cache-Control': 'private, no-store, max-age=0',
+        'Pragma': 'no-cache',
         'X-Content-Type-Options': 'nosniff'
       });
       res.sendFile(meta.storageName, { root: uploadsDir }, (error) => {
@@ -325,6 +340,14 @@ function parseTtl(raw) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value < 0.25 || value > MAX_TTL_HOURS) return null;
   return value;
+}
+
+function parseAllowDownload(raw) {
+  if (raw === undefined || raw === '') return true;
+  const value = String(raw).toLowerCase();
+  if (value === '1' || value === 'true') return true;
+  if (value === '0' || value === 'false') return false;
+  return null;
 }
 
 function safeDisplayName(name) {
@@ -415,6 +438,7 @@ function publicMeta(meta, req) {
     createdAt: meta.createdAt,
     expiresAt: meta.expiresAt,
     protected: meta.protected,
+    allowDownload: meta.allowDownload !== false,
     linkSalt: meta.protected ? meta.linkSalt : null,
     contentUrl: `${base}/api/shares/${meta.id}/content`
   };
