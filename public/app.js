@@ -10,6 +10,7 @@ const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
 const ttlInput = document.getElementById('ttlHours');
 const passwordInput = document.getElementById('password');
+const allowDownloadInput = document.getElementById('allowDownload');
 const status = document.getElementById('status');
 const stashButton = document.getElementById('stashButton');
 const resultCard = document.getElementById('resultCard');
@@ -61,6 +62,7 @@ form.addEventListener('submit', async (event) => {
     const data = new FormData();
     data.append('file', file);
     data.append('ttlHours', String(ttlHours));
+    data.append('allowDownload', allowDownloadInput.checked ? '1' : '0');
     if (accessKey) {
       data.append('accessKey', accessKey);
       data.append('linkSalt', linkSalt);

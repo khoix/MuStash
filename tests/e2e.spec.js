@@ -2,11 +2,13 @@ import { test, expect } from '@playwright/test';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlL8AAAAASUVORK5CYII=', 'base64');
 
-async function uploadPng(page, password = '') {
+async function uploadPng(page, password = '', allowDownload = true) {
   await page.goto('/');
   await page.getByTestId('file-input').setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: png });
   await expect(page.locator('#localPreview img')).toBeVisible();
   await page.getByTestId('ttl-input').fill('1');
+  await expect(page.getByTestId('allow-download')).toBeChecked();
+  if (!allowDownload) await page.getByTestId('allow-download').uncheck();
   if (password) await page.getByTestId('password-input').fill(password);
   await page.getByTestId('stash-button').click();
   await expect(page.getByTestId('result-card')).toBeVisible();
@@ -14,12 +16,47 @@ async function uploadPng(page, password = '') {
   return page.getByTestId('share-url').inputValue();
 }
 
-test('uploads and previews an unprotected image', async ({ page }) => {
+test('uploads, previews, and downloads an unrestricted image', async ({ page }) => {
   const shareUrl = await uploadPng(page);
   expect(shareUrl).not.toContain('#k=');
   await page.goto(shareUrl);
   await expect(page.getByTestId('media-state')).toBeVisible();
-  await expect(page.locator('[data-testid="media-preview"]')).toHaveAttribute('src', /\/api\/shares\/.+\/content/);
+  const preview = page.locator('[data-testid="media-preview"]');
+  await expect(preview).toHaveAttribute('src', /\/api\/shares\/.+\/content/);
+  await expect(page.getByTestId('download-button')).toBeVisible();
+  await expect(page.getByTestId('preview-only-pill')).toBeHidden();
+
+  const contentUrl = await preview.getAttribute('src');
+  const downloadResponse = await page.request.get(new URL(`${contentUrl}?download=1`, page.url()).href);
+  expect(downloadResponse.status()).toBe(200);
+  expect(downloadResponse.headers()['content-disposition']).toContain('attachment');
+});
+
+test('preview-only share hides download and rejects attachment requests', async ({ page }) => {
+  const shareUrl = await uploadPng(page, '', false);
+  await page.goto(shareUrl);
+  await expect(page.getByTestId('media-state')).toBeVisible();
+  await expect(page.getByTestId('download-button')).toBeHidden();
+  await expect(page.getByTestId('preview-only-pill')).toBeVisible();
+  await expect(page.locator('#mediaFrame')).toHaveClass(/preview-only/);
+
+  const preview = page.locator('[data-testid="media-preview"]');
+  expect(await preview.evaluate((element) => element.draggable)).toBe(false);
+  const contextMenuPrevented = await preview.evaluate((element) => {
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(contextMenuPrevented).toBe(true);
+
+  const contentUrl = await preview.getAttribute('src');
+  const previewResponse = await page.request.get(new URL(contentUrl, page.url()).href);
+  expect(previewResponse.status()).toBe(200);
+  expect(previewResponse.headers()['content-disposition']).toBe('inline');
+  expect(previewResponse.headers()['cache-control']).toContain('no-store');
+
+  const downloadResponse = await page.request.get(new URL(`${contentUrl}?download=1`, page.url()).href);
+  expect(downloadResponse.status()).toBe(403);
 });
 
 test('password share uses a derived fragment key and can also be unlocked manually', async ({ browser, page }) => {
@@ -113,4 +150,14 @@ test('password field shows a right-aligned lock icon', async ({ page }) => {
   const wrap = page.locator('.input-with-icon');
   await expect(wrap.getByTestId('password-input')).toBeVisible();
   await expect(wrap.locator('.field-icon svg')).toBeVisible();
+});
+
+test('Guard Lab is reachable and can trigger the black overlay manually', async ({ page }) => {
+  await page.goto('/testlab/');
+  await expect(page.getByTestId('guard-lab')).toBeVisible();
+  const overlay = page.getByTestId('guard-overlay');
+  await expect(overlay).not.toHaveClass(/active/);
+  await page.getByTestId('manual-guard').click();
+  await expect(overlay).toHaveClass(/active/);
+  await expect(page.locator('#eventLog')).toContainText('GUARD: manual test');
 });
