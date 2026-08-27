@@ -11,6 +11,7 @@
 - Guard Lab logs detector timing, guard-class application timing, and the next animation-frame timing for real-device testing.
 - Guard Lab now exports self-contained JSON diagnostics for offline review and tuning. Exports include browser/device context, capabilities and permissions, detector settings and changes, audio-context and microphone-track characteristics, calibration baselines, high-rate audio/motion telemetry, trigger decisions, rendering timing, and counters.
 - Added five-second **Volume Up** and **Volume Down** labeled trial windows so exported sensor data can be correlated with known physical button presses, plus a control to mark the most recent trigger as a false positive.
+- On mobile, the protected Guard Lab test window now pins to the top as a compact panel while a labeled trial is active, keeping black-guard activation visible while the trial controls remain usable below.
 
 ### Security / behavior
 
@@ -20,7 +21,7 @@
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed media bytes can still be recovered by a determined recipient.
 - Guard Lab sensor processing and diagnostic capture remain local to the browser. Export occurs only when the user explicitly downloads the diagnostic JSON.
 - Guard Lab is experimental instrumentation only and does not change normal share-page behavior.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, and diagnostic export structure.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, diagnostic export structure, and mobile trial-window pinning.
 
 ## 0.1.2 — 2026-08-25
 

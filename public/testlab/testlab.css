@@ -42,6 +42,21 @@
   .capability-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lab-actions { grid-template-columns: 1fr 1fr; }
   .trial-actions, .tuning-grid { grid-template-columns: 1fr; }
+  .demo-card:has(~ .trial-card .trial-state.active) .test-surface {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 1000;
+    min-height: 0;
+    height: 176px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  }
+  .demo-card:has(~ .trial-card .trial-state.active) .test-mark { width: 48px; height: 48px; border-radius: 15px; font-size: 1.55rem; }
+  .demo-card:has(~ .trial-card .trial-state.active) .test-surface span { display: none; }
+  .demo-card:has(~ .trial-card .trial-state.active) .test-surface > strong { font-size: .9rem; max-width: 34ch; }
 }
 @media (max-width: 520px) {
   .section-heading { flex-direction: column; }
@@ -52,4 +67,5 @@
   .capability-grid, .metric-grid, .lab-actions { grid-template-columns: 1fr; }
   .lab-shell { margin-top: 2vh; }
   .test-surface { min-height: 210px; padding: 20px; }
+  .demo-card:has(~ .trial-card .trial-state.active) .test-surface { min-height: 0; height: 164px; padding: 12px 16px; }
 }

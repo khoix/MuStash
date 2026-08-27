@@ -178,6 +178,27 @@ test('Guard Lab black guard stays contained to the protected test window', async
   expect(Math.abs(overlayBox.height - windowBox.height)).toBeLessThanOrEqual(1);
 });
 
+test('Guard Lab pins only the protected test window while a mobile trial is active', async ({ page }, testInfo) => {
+  await page.goto('/testlab/');
+  const testWindow = page.getByTestId('test-window');
+  const sensorControls = page.locator('.lab-actions');
+  await page.getByTestId('trial-volume-up').click();
+  await expect(page.locator('#trialState')).toHaveClass(/active/);
+
+  const testWindowPosition = await testWindow.evaluate((element) => getComputedStyle(element).position);
+  const controlsPosition = await sensorControls.evaluate((element) => getComputedStyle(element).position);
+
+  if (testInfo.project.name === 'chromium') {
+    expect(testWindowPosition).toBe('relative');
+  } else {
+    expect(testWindowPosition).toBe('fixed');
+    expect(controlsPosition).not.toBe('fixed');
+    const box = await testWindow.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.y).toBeLessThanOrEqual(60);
+  }
+});
+
 test('Guard Lab exports self-contained diagnostic JSON with labeled trials and guard timing', async ({ page }) => {
   await page.goto('/testlab/');
   await page.getByTestId('trial-volume-up').click();
