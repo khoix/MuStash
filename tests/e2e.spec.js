@@ -177,3 +177,29 @@ test('Guard Lab black guard stays contained to the protected test window', async
   expect(Math.abs(overlayBox.width - windowBox.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(overlayBox.height - windowBox.height)).toBeLessThanOrEqual(1);
 });
+
+test('Guard Lab exports self-contained diagnostic JSON with labeled trials and guard timing', async ({ page }) => {
+  await page.goto('/testlab/');
+  await page.getByTestId('trial-volume-up').click();
+  await expect(page.locator('#trialState')).toContainText('Volume Up');
+  await page.getByTestId('manual-guard').click();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('export-diagnostics').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^mustash-guardlab-.*\.json$/);
+
+  const path = await download.path();
+  const fs = await import('node:fs/promises');
+  const exported = JSON.parse(await fs.readFile(path, 'utf8'));
+  expect(exported.schemaVersion).toBe(2);
+  expect(exported.purpose).toContain('volume-button');
+  expect(exported.environment.userAgent).toBeTruthy();
+  expect(exported.capabilities).toBeTruthy();
+  expect(exported.settingsInitial.carrierFrequencyHz).toBe(18500);
+  expect(exported.trials).toHaveLength(1);
+  expect(exported.trials[0].label).toBe('volume-up');
+  expect(exported.counters.triggers).toBeGreaterThanOrEqual(1);
+  expect(exported.events.some((event) => event.type === 'guard-trigger')).toBe(true);
+  expect(exported.final.telemetryCount).toBeGreaterThanOrEqual(0);
+});

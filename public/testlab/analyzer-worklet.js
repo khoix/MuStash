@@ -28,9 +28,9 @@ class GuardAnalyzer extends AudioWorkletProcessor {
     const rms = Math.sqrt(sumSquares / channel.length);
     const carrier = (2 / channel.length) * Math.hypot(real, imag);
 
-    // Keep main-thread traffic low while still sampling much faster than display refresh.
+    // Keep main-thread traffic manageable while retaining high-rate timing data for exported diagnostics.
     if ((this.blockCounter++ & 1) === 0) {
-      this.port.postMessage({ rms, carrier, at: currentTime });
+      this.port.postMessage({ rms, carrier, at: currentTime, blockSize: channel.length });
     }
     return true;
   }
