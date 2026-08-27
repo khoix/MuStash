@@ -219,25 +219,16 @@ test('Guard Lab black guard stays contained to the protected test window', async
   expect(Math.abs(overlayBox.height - windowBox.height)).toBeLessThanOrEqual(1);
 });
 
-test('Guard Lab pins only the protected test window while a mobile trial is active', async ({ page }, testInfo) => {
+test('Guard Lab trial labels do not pin the test window before sensors start', async ({ page }) => {
   await page.goto('/testlab/');
   const testWindow = page.getByTestId('test-window');
-  const sensorControls = page.locator('.lab-actions');
+
+  await expect(testWindow).not.toHaveClass(/sensor-pinned/);
   await page.getByTestId('trial-volume-up').click();
   await expect(page.locator('#trialState')).toHaveClass(/active/);
-
-  const testWindowPosition = await testWindow.evaluate((element) => getComputedStyle(element).position);
-  const controlsPosition = await sensorControls.evaluate((element) => getComputedStyle(element).position);
-
-  if (testInfo.project.name === 'chromium') {
-    expect(testWindowPosition).toBe('relative');
-  } else {
-    expect(testWindowPosition).toBe('fixed');
-    expect(controlsPosition).not.toBe('fixed');
-    const box = await testWindow.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box.y).toBeLessThanOrEqual(60);
-  }
+  await expect(testWindow).not.toHaveClass(/sensor-pinned/);
+  expect(await testWindow.evaluate((element) => getComputedStyle(element).position)).toBe('relative');
+  expect(await testWindow.evaluate((element) => element.closest('.demo-card') !== null)).toBe(true);
 });
 
 test('Guard Lab exports self-contained diagnostic JSON with labeled trials and guard timing', async ({ page }) => {
