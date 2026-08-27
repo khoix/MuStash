@@ -153,7 +153,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, mobile trial-window pinning, labeled trials, and diagnostic JSON export structure.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, mobile trial-window pinning, labeled trials, and diagnostic JSON export structure.
 
 ## Storage lifecycle
 

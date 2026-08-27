@@ -32,6 +32,8 @@ desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
   button.addEventListener('click', () => stepTtl(Number(button.dataset.dir)));
 });
+ttlInput.addEventListener('focus', () => ttlInput.select());
+ttlInput.addEventListener('mouseup', (event) => event.preventDefault());
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();

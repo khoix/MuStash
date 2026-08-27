@@ -57,7 +57,7 @@
         <div class="preview" id="localPreview" hidden aria-live="polite"></div>
 
         <div class="settings-grid">
-          <label class="field">
+          <label class="field settings-ttl">
             <span>Keep for</span>
             <div class="ttl-control">
               <div class="input-suffix">
@@ -71,7 +71,7 @@
             </div>
           </label>
 
-          <label class="field">
+          <label class="field settings-password">
             <span>Access password <small>optional</small></span>
             <div class="input-with-icon">
               <input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="At least 8 characters" data-testid="password-input">
@@ -83,17 +83,15 @@
               </span>
             </div>
           </label>
+
+          <label class="download-option settings-download">
+            <input id="allowDownload" type="checkbox" checked data-testid="allow-download">
+            <span class="download-option-copy">
+              <strong>Allow Download</strong>
+            </span>
+          </label>
         </div>
 
-        <label class="download-option">
-          <input id="allowDownload" type="checkbox" checked data-testid="allow-download">
-          <span class="download-option-copy">
-            <strong>Allow Download</strong>
-            <small>Recipients can save the original file.</small>
-          </span>
-        </label>
-
-        <br/>
         <button class="primary-button" id="stashButton" type="submit" data-testid="stash-button">Stash it</button>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </form>
@@ -116,6 +114,6 @@
     </section>
   </main>
 
-  <footer>MuStash <span aria-hidden="true">〰</span> Nothing last forever.</footer>
+  <footer>MuStash <span aria-hidden="true">〰</span> Nothing lasts forever.</footer>
 </body>
 </html>
