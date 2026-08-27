@@ -15,7 +15,7 @@
 .demo-card { margin-top: 18px; }
 .section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
 .section-heading h2 { font-size: clamp(1.45rem, 4vw, 2rem); }
-.test-surface { min-height: 240px; border-radius: 18px; background: #090a0b; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 9px; padding: 28px; }
+.test-surface { position: relative; overflow: hidden; min-height: 240px; border-radius: 18px; background: #090a0b; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 9px; padding: 28px; }
 .test-surface span { color: rgba(255,255,255,.68); max-width: 52ch; }
 .test-mark { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; font-size: 2.2rem; font-weight: 900; background: rgba(255,255,255,.08); }
 .lab-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
@@ -31,7 +31,7 @@
 .log-entry { display: grid; grid-template-columns: 78px 1fr; gap: 10px; padding: 5px 4px; border-bottom: 1px solid var(--line); }
 .log-entry:last-child { border-bottom: 0; }
 .log-time { color: var(--muted); }
-.guard-overlay { position: fixed; inset: 0; z-index: 2147483647; background: #000; opacity: 0; pointer-events: none; will-change: opacity; transition: none; }
+.guard-overlay { position: absolute; inset: 0; z-index: 2; background: #000; opacity: 0; pointer-events: none; will-change: opacity; transition: none; }
 .guard-overlay.active { opacity: 1; }
 @media (max-width: 760px) {
   .capability-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

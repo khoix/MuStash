@@ -14,8 +14,6 @@
   <script type="module" src="testlab.js"></script>
 </head>
 <body>
-  <div id="guardOverlay" class="guard-overlay" aria-hidden="true" data-testid="guard-overlay"></div>
-
   <header class="site-header">
     <a class="brand" href=".." aria-label="MuStash home">
       <img src="../icons/mustash.svg" alt="" width="38" height="38">
@@ -47,14 +45,15 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">Capture surface</p>
-          <h2>Protected preview test</h2>
+          <h2>Protected test window</h2>
         </div>
         <span class="armed-pill" id="armedPill">Disarmed</span>
       </div>
-      <div class="test-surface" aria-label="Test preview surface">
+      <div class="test-surface" data-testid="test-window" aria-label="Protected test window">
+        <div id="guardOverlay" class="guard-overlay" aria-hidden="true" data-testid="guard-overlay"></div>
         <div class="test-mark" aria-hidden="true">µ</div>
-        <strong>If a guard trigger fires, the entire viewport should become black immediately.</strong>
-        <span>Take screenshots while testing to see what the operating system actually captures.</span>
+        <strong>If a guard trigger fires, only this test window should become black.</strong>
+        <span>The rest of the lab stays visible so you can stop sensors, tune thresholds, and inspect the event log even during repeated triggers.</span>
       </div>
       <div class="lab-actions">
         <button class="primary-button" id="startButton" type="button" data-testid="start-lab">Start sensors</button>
@@ -101,7 +100,7 @@
         <label class="lab-control">
           <span><strong>Black-guard hold</strong><output id="guardDurationValue">800 ms</output></span>
           <input id="guardDurationInput" type="range" min="200" max="2000" step="100" value="800">
-          <small>How long the viewport stays black after any trigger.</small>
+          <small>How long the protected test window stays black after any trigger.</small>
         </label>
       </div>
     </section>
