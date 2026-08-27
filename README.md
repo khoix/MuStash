@@ -61,7 +61,9 @@ The Guard Lab is intentionally isolated from normal share behavior. It is used t
 
 Starting the sensor test may require microphone permission and, on iOS, motion permission. Microphone samples are processed locally with an `AudioWorklet`; MuStash does not upload or store them. The lab also includes a permission-free manual black-guard button so compositor behavior can be tested separately from sensor detection.
 
-The lab has labeled five-second **Volume Up** and **Volume Down** trial windows. Arm the appropriate trial and then press that physical button once. This gives exported telemetry a ground-truth window that can be compared against detector responses. On mobile, while a labeled trial is active, only the protected test window is pinned to the top of the viewport so the black-guard response stays visible while the trial controls remain in normal page flow. If the guard fires when no intended volume press occurred, **Mark last trigger false** records that classification for later tuning.
+On mobile, pressing **Start sensors** immediately pins only the protected test window to the top of the viewport; it stays pinned while the sensors are active and returns to its normal location when **Stop** is pressed. The window is temporarily moved out of the composited card while pinned so its fixed positioning is truly viewport-relative. The trial and tuning controls remain in normal page flow below it.
+
+The lab has labeled five-second **Volume Up** and **Volume Down** trial windows. Arm the appropriate trial and then press that physical button once. This gives exported telemetry a ground-truth window that can be compared against detector responses. If the guard fires when no intended volume press occurred, **Mark last trigger false** records that classification for later tuning.
 
 Use **Export diagnostics** after a test session to download a self-contained JSON report. It includes:
 
@@ -153,7 +155,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, mobile trial-window pinning, labeled trials, and diagnostic JSON export structure.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, viewport-fixed sensor pinning, labeled trials, and diagnostic JSON export structure.
 
 ## Storage lifecycle
 
