@@ -145,6 +145,47 @@ test('ttl steppers adjust hours beside the input-suffix field', async ({ page })
   await expect(page.locator('.ttl-control .input-suffix')).toBeVisible();
 });
 
+test('settings grid places ttl, password, and download controls', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const grid = page.locator('.settings-grid');
+  await expect(grid.locator('.settings-ttl')).toBeVisible();
+  await expect(grid.locator('.settings-password')).toBeVisible();
+  await expect(grid.locator('.settings-download')).toBeVisible();
+  await expect(grid.getByTestId('allow-download')).toBeChecked();
+  await expect(grid.locator('.download-option-copy strong')).toHaveText('Allow Download');
+  await expect(grid.locator('.download-option-copy small')).toHaveCount(0);
+
+  const areas = (await grid.evaluate((el) => getComputedStyle(el).gridTemplateAreas))
+    .replace(/"/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const mobile = /mobile|pixel/i.test(testInfo.project.name);
+  if (mobile) {
+    expect(areas).toContain('ttl download');
+    expect(areas).toContain('password password');
+  } else {
+    expect(areas).toBe('ttl password download');
+  }
+});
+
+test('ttl input selects its value on focus', async ({ page }) => {
+  await page.goto('/');
+  const ttl = page.getByTestId('ttl-input');
+  await ttl.fill('12');
+  await ttl.blur();
+  const selectedOnFocus = await ttl.evaluate((el) => {
+    let called = false;
+    const original = el.select.bind(el);
+    el.select = () => {
+      called = true;
+      original();
+    };
+    el.dispatchEvent(new FocusEvent('focus'));
+    return called;
+  });
+  expect(selectedOnFocus).toBe(true);
+});
+
 test('password field shows a right-aligned lock icon', async ({ page }) => {
   await page.goto('/');
   const wrap = page.locator('.input-with-icon');

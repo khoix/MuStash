@@ -2,6 +2,14 @@
 
 ## Unreleased — 2026-08-27
 
+### Changed
+
+- Upload settings grid is now three columns on desktop (TTL / password / Allow Download at roughly 20% / 60% / 20%).
+- On mobile, TTL and Allow Download share the first row; the password field spans the row below.
+- Allow Download copy is a single label, vertically centered to the TTL input control.
+- Focusing or tapping the TTL hours field selects its current value for quick replacement.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile) and TTL select-on-focus behavior.
+
 ### Added
 
 - Added an **Allow Download** upload option, enabled by default for backward-compatible sharing behavior.
@@ -21,7 +29,7 @@
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed media bytes can still be recovered by a determined recipient.
 - Guard Lab sensor processing and diagnostic capture remain local to the browser. Export occurs only when the user explicitly downloads the diagnostic JSON.
 - Guard Lab is experimental instrumentation only and does not change normal share-page behavior.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, diagnostic export structure, and mobile trial-window pinning.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, diagnostic export structure, mobile trial-window pinning, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 
