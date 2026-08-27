@@ -64,6 +64,22 @@
       <p class="status" id="labStatus" role="status" aria-live="polite">Sensors are off. The manual black-guard test works without permissions.</p>
     </section>
 
+    <section class="card trial-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Ground truth</p>
+          <h2>Label your button trials</h2>
+        </div>
+        <span class="trial-state" id="trialState">No trial armed</span>
+      </div>
+      <p class="trial-copy">Arm a five-second window, then press the named physical volume button once. The export records the trial window alongside every sensor sample and trigger so detection thresholds can be tuned against known button presses.</p>
+      <div class="trial-actions">
+        <button class="secondary-button" id="volumeUpTrialButton" type="button" data-testid="trial-volume-up">Arm Volume Up trial</button>
+        <button class="secondary-button" id="volumeDownTrialButton" type="button" data-testid="trial-volume-down">Arm Volume Down trial</button>
+        <button class="secondary-button" id="falseTriggerButton" type="button" data-testid="mark-false-trigger">Mark last trigger false</button>
+      </div>
+    </section>
+
     <section class="card">
       <div class="section-heading">
         <div>
@@ -115,11 +131,15 @@
     <section class="card log-card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Timing</p>
+          <p class="eyebrow">Timing + diagnostics</p>
           <h2>Event log</h2>
         </div>
-        <button class="secondary-button compact-button" id="clearLogButton" type="button">Clear</button>
+        <div class="log-actions">
+          <button class="secondary-button compact-button" id="clearLogButton" type="button">Clear view</button>
+          <button class="primary-button compact-button" id="exportLogButton" type="button" data-testid="export-diagnostics">Export diagnostics</button>
+        </div>
       </div>
+      <p class="export-copy">Export creates a JSON file containing environment/capability details, permissions, detector settings and changes, calibration baselines, high-rate audio and motion telemetry, labeled trials, trigger decisions, and guard rendering timing. Attach that file in chat for review.</p>
       <div class="event-log" id="eventLog" role="log" aria-live="polite" aria-label="Guard Lab event log"></div>
     </section>
   </main>

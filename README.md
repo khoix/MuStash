@@ -61,6 +61,22 @@ The Guard Lab is intentionally isolated from normal share behavior. It is used t
 
 Starting the sensor test may require microphone permission and, on iOS, motion permission. Microphone samples are processed locally with an `AudioWorklet`; MuStash does not upload or store them. The lab also includes a permission-free manual black-guard button so compositor behavior can be tested separately from sensor detection.
 
+The lab has labeled five-second **Volume Up** and **Volume Down** trial windows. Arm the appropriate trial and then press that physical button once. This gives exported telemetry a ground-truth window that can be compared against detector responses. If the guard fires when no intended volume press occurred, **Mark last trigger false** records that classification for later tuning.
+
+Use **Export diagnostics** after a test session to download a self-contained JSON report. It includes:
+
+- browser, viewport, screen, touch, hardware, and connection context where exposed by the browser,
+- feature support and microphone/motion permission state,
+- initial/current detector settings and every threshold change,
+- AudioContext sample rate/latency values and microphone track settings/capabilities,
+- calibration timing and carrier/RMS baselines,
+- high-rate carrier/RMS telemetry with baselines, deltas, thresholds, and active trial labels,
+- motion vectors, rotation rates, reported/observed sample intervals, impulses, thresholds, and active trial labels,
+- labeled trial windows, detector triggers, suppressed triggers, manual classifications, visibility/orientation/resize events, and guard-render timing,
+- sample/trigger/drop counters and final session state.
+
+Telemetry is retained locally in a bounded in-memory buffer and is only written out when **Export diagnostics** is pressed. Attach the exported JSON to a review session so detector thresholds, signal choice, calibration, and guard timing can be tuned from real-device evidence rather than assumptions.
+
 Results are expected to vary by phone, browser, hardware volume level, microphone processing, and environment. The Guard Lab is experimental instrumentation, not production screenshot protection.
 
 ### Password-protected links
@@ -137,7 +153,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, persisted appearance preferences, and Guard Lab route/manual-overlay behavior.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, labeled trials, and diagnostic JSON export structure.
 
 ## Storage lifecycle
 

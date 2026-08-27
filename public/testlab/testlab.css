@@ -12,7 +12,7 @@
 .capability-card strong, .metric-card strong { display: block; margin-top: 6px; overflow-wrap: anywhere; }
 .metric-card strong { font-size: 1.35rem; }
 .metric-card small { margin-top: 3px; }
-.demo-card { margin-top: 18px; }
+.demo-card, .trial-card { margin-top: 18px; }
 .section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
 .section-heading h2 { font-size: clamp(1.45rem, 4vw, 2rem); }
 .test-surface { position: relative; overflow: hidden; min-height: 240px; border-radius: 18px; background: #090a0b; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 9px; padding: 28px; }
@@ -20,13 +20,18 @@
 .test-mark { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; font-size: 2.2rem; font-weight: 900; background: rgba(255,255,255,.08); }
 .lab-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .lab-actions .primary-button { width: auto; }
-.compact-button { min-height: 38px; padding: 0 13px; }
+.compact-button { min-height: 38px; padding: 0 13px; width: auto; }
 .tuning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; }
 .lab-control { display: grid; gap: 8px; }
 .lab-control > span { display: flex; justify-content: space-between; gap: 12px; font-size: .88rem; }
 .lab-control output { color: var(--accent); font-weight: 800; }
 .lab-control small { color: var(--muted); line-height: 1.4; }
 .lab-control input[type='range'] { width: 100%; accent-color: var(--accent); }
+.trial-copy, .export-copy { margin: 0 0 14px; color: var(--muted); line-height: 1.5; }
+.trial-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.trial-state { color: var(--muted); font-size: .78rem; font-weight: 800; }
+.trial-state.active { color: var(--accent-2); }
+.log-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .event-log { min-height: 180px; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-strong); padding: 10px; font: .76rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .log-entry { display: grid; grid-template-columns: 78px 1fr; gap: 10px; padding: 5px 4px; border-bottom: 1px solid var(--line); }
 .log-entry:last-child { border-bottom: 0; }
@@ -36,7 +41,12 @@
 @media (max-width: 760px) {
   .capability-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lab-actions { grid-template-columns: 1fr 1fr; }
-  .tuning-grid { grid-template-columns: 1fr; }
+  .trial-actions, .tuning-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .section-heading { flex-direction: column; }
+  .log-actions { width: 100%; justify-content: stretch; }
+  .log-actions button { flex: 1 1 auto; }
 }
 @media (max-width: 430px) {
   .capability-grid, .metric-grid, .lab-actions { grid-template-columns: 1fr; }
