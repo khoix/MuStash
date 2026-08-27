@@ -8,7 +8,8 @@
 - On mobile, TTL and Allow Download share the first row; the password field spans the row below.
 - Allow Download copy is a single label, vertically centered to the TTL input control.
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
-- Expanded Playwright coverage for the settings-grid layout (desktop and mobile) and TTL select-on-focus behavior.
+- Guard Lab mobile pinning now starts when **Start sensors** is pressed and remains active until **Stop**. The actual protected test window is temporarily moved to the document body while pinned so `position: fixed` is relative to the viewport instead of the composited card container.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, and Guard Lab viewport-fixed sensor pinning.
 
 ### Added
 
@@ -19,7 +20,6 @@
 - Guard Lab logs detector timing, guard-class application timing, and the next animation-frame timing for real-device testing.
 - Guard Lab now exports self-contained JSON diagnostics for offline review and tuning. Exports include browser/device context, capabilities and permissions, detector settings and changes, audio-context and microphone-track characteristics, calibration baselines, high-rate audio/motion telemetry, trigger decisions, rendering timing, and counters.
 - Added five-second **Volume Up** and **Volume Down** labeled trial windows so exported sensor data can be correlated with known physical button presses, plus a control to mark the most recent trigger as a false positive.
-- On mobile, the protected Guard Lab test window now pins to the top as a compact panel while a labeled trial is active, keeping black-guard activation visible while the trial controls remain usable below.
 
 ### Security / behavior
 
@@ -29,7 +29,7 @@
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed media bytes can still be recovered by a determined recipient.
 - Guard Lab sensor processing and diagnostic capture remain local to the browser. Export occurs only when the user explicitly downloads the diagnostic JSON.
 - Guard Lab is experimental instrumentation only and does not change normal share-page behavior.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, diagnostic export structure, mobile trial-window pinning, settings-grid layout, and TTL select-on-focus.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, Guard Lab route/manual-overlay behavior, diagnostic export structure, viewport-fixed sensor pinning, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 
