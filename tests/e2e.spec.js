@@ -152,12 +152,28 @@ test('password field shows a right-aligned lock icon', async ({ page }) => {
   await expect(wrap.locator('.field-icon svg')).toBeVisible();
 });
 
-test('Guard Lab is reachable and can trigger the black overlay manually', async ({ page }) => {
+test('Guard Lab black guard stays contained to the protected test window', async ({ page }) => {
   await page.goto('/testlab/');
   await expect(page.getByTestId('guard-lab')).toBeVisible();
+
+  const testWindow = page.getByTestId('test-window');
   const overlay = page.getByTestId('guard-overlay');
+  const manualGuard = page.getByTestId('manual-guard');
+
   await expect(overlay).not.toHaveClass(/active/);
-  await page.getByTestId('manual-guard').click();
+  await manualGuard.click();
   await expect(overlay).toHaveClass(/active/);
   await expect(page.locator('#eventLog')).toContainText('GUARD: manual test');
+  await expect(manualGuard).toBeVisible();
+
+  const [windowBox, overlayBox] = await Promise.all([
+    testWindow.boundingBox(),
+    overlay.boundingBox()
+  ]);
+  expect(windowBox).not.toBeNull();
+  expect(overlayBox).not.toBeNull();
+  expect(Math.abs(overlayBox.x - windowBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(overlayBox.y - windowBox.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(overlayBox.width - windowBox.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(overlayBox.height - windowBox.height)).toBeLessThanOrEqual(1);
 });
