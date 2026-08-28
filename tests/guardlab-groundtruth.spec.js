@@ -9,43 +9,26 @@ async function exportDiagnostics(page) {
   return JSON.parse(await fs.readFile(path, 'utf8'));
 }
 
-async function dispatchMotion(page, acceleration, rotationRate) {
-  await page.evaluate(({ acceleration, rotationRate }) => {
-    const event = new Event('devicemotion');
-    Object.defineProperties(event, {
-      acceleration: { value: acceleration },
-      accelerationIncludingGravity: { value: acceleration },
-      rotationRate: { value: rotationRate },
-      interval: { value: 16.67 }
-    });
-    window.dispatchEvent(event);
-  }, { acceleration, rotationRate });
-}
-
-test('Guard Lab emits an exact PRESS NOW cue and exports its timing window', async ({ page }) => {
+test('Guard Lab labels a real screenshot-attempt cue and exports a wider analysis window', async ({ page }) => {
   await page.goto('/testlab/');
 
+  await page.getByTestId('arm-screenshot-attempt').click();
   const cue = page.getByTestId('press-now-cue');
-  await expect(cue).toBeHidden();
-  await page.getByTestId('trial-volume-up').click();
-  await expect(page.locator('#trialState')).toContainText('get ready');
-  await expect(cue).toBeHidden();
-
   await expect(cue).toBeVisible({ timeout: 2600 });
-  await expect(cue).toHaveText('PRESS VOLUME UP NOW');
+  await expect(cue).toHaveText('TAKE SCREENSHOT NOW');
 
   const exported = await exportDiagnostics(page);
   const trial = exported.trials[0];
 
   expect(exported.groundTruthProtocol.version).toBe(1);
-  expect(exported.refinement.version).toBe(1);
-  expect(exported.groundTruthProtocol.pressCueDelayMs).toBe(2000);
-  expect(exported.groundTruthProtocol.pressWindowMs).toBe(700);
-  expect(trial.groundTruth.role).toBe('expected-press');
-  expect(trial.cueAtMs).toBeGreaterThan(trial.armedAtMs);
-  expect(trial.pressWindowStartAtMs).toBe(trial.cueAtMs);
-  expect(trial.pressWindowEndAtMs - trial.pressWindowStartAtMs).toBe(700);
-  expect(exported.events.some((event) => event.type === 'press-cue' && event.localTrialId === 1)).toBe(true);
+  expect(exported.screenshotViabilityStudy.version).toBe(1);
+  expect(exported.screenshotViabilityStudy.decisionMode).toBe('raw-telemetry-only');
+  expect(exported.screenshotViabilityStudy.analysisWindowAfterCueMs).toBe(1500);
+  expect(trial.groundTruth.role).toBe('screenshot-attempt');
+  expect(trial.groundTruth.expectedPress).toBeNull();
+  expect(trial.screenshotStudy.expectedAction).toBe('screenshot-attempt');
+  expect(trial.screenshotStudy.analysisWindowStartAtMs).toBe(trial.cueAtMs);
+  expect(trial.screenshotStudy.analysisWindowEndAtMs - trial.cueAtMs).toBe(1500);
 });
 
 test('Guard Lab requests iOS-style motion permission from the Start sensors gesture', async ({ page }) => {
@@ -73,69 +56,61 @@ test('Guard Lab requests iOS-style motion permission from the Start sensors gest
   expect(exported.events.some((event) => event.type === 'motion-permission-requested-from-start-gesture')).toBe(true);
 });
 
-test('Guard Lab automatically applies the test preset before sensor startup', async ({ page }) => {
+test('Guard Lab automatically applies the measurement preset before sensor startup', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: () => Promise.reject(new Error('mock mic unavailable')) }
     });
   });
+
   await page.goto('/testlab/');
   await page.getByTestId('start-lab').click();
 
   await expect(page.locator('#frequencyInput')).toHaveValue('18500');
   await expect(page.locator('#toneInput')).toHaveValue('15');
-  await expect(page.locator('#carrierThresholdInput')).toHaveValue('30');
+  await expect(page.locator('#carrierThresholdInput')).toHaveValue('40');
   await expect(page.locator('#transientThresholdInput')).toHaveValue('300');
-  await expect(page.locator('#motionThresholdInput')).toHaveValue('0.5');
+  await expect(page.locator('#motionThresholdInput')).toHaveValue('5');
   await expect(page.locator('#guardDurationInput')).toHaveValue('800');
 
   const exported = await exportDiagnostics(page);
-  expect(exported.refinement.presetAutoAppliedBeforeStart).toBe(true);
-  expect(exported.refinement.events.some((event) => event.type === 'preset-auto-applied')).toBe(true);
+  expect(exported.screenshotViabilityStudy.presetAutoAppliedBeforeStart).toBe(true);
+  expect(exported.screenshotViabilityStudy.measurementPreset.carrierTriggerPercent).toBe(40);
+  expect(exported.screenshotViabilityStudy.measurementPreset.motionTriggerMps2).toBe(5);
+  expect(exported.screenshotViabilityStudy.events.some((event) => event.type === 'study-preset-auto-applied')).toBe(true);
 });
 
-test('Guard Lab exports explicit control roles and control-specific cues', async ({ page }) => {
+test('Guard Lab exports explicit no-action controls with control-specific cues', async ({ page }) => {
   await page.goto('/testlab/');
 
-  await page.getByTestId('control-no-press').click();
+  await page.getByTestId('control-no-action').click();
   await expect(page.getByTestId('press-now-cue')).toBeVisible({ timeout: 2600 });
-  await expect(page.getByTestId('press-now-cue')).toHaveText('NO PRESS — HOLD STILL');
+  await expect(page.getByTestId('press-now-cue')).toHaveText('DO NOTHING — HOLD STILL');
 
   const exported = await exportDiagnostics(page);
-  expect(exported.trials[0].groundTruth.role).toBe('no-press');
+  expect(exported.trials[0].groundTruth.role).toBe('no-action');
   expect(exported.trials[0].groundTruth.expectedPress).toBeNull();
-  expect(exported.trials[0].controlRole).toBe('no-press');
+  expect(exported.trials[0].controlRole).toBe('no-action');
 });
 
-test('Guard Lab motion-shape filter accepts button-like rotation and rejects tap/movement shapes', async ({ page }) => {
+test('Guard Lab research mode prevents raw detector presentation from blacking the test window', async ({ page }) => {
   await page.goto('/testlab/');
   const overlay = page.getByTestId('guard-overlay');
 
-  await page.getByTestId('trial-volume-up').click();
-  await expect(page.getByTestId('press-now-cue')).toBeVisible({ timeout: 2600 });
-  await dispatchMotion(page, { x: 0, y: 0, z: 0 }, { alpha: 0, beta: 0, gamma: 0 });
-  await dispatchMotion(page, { x: 0.7, y: 0, z: 0 }, { alpha: 2, beta: 7, gamma: 7 });
-  await expect(overlay).toHaveClass(/active/);
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('guardlab:research-mode', {
+      detail: { enabled: true, reason: 'e2e' }
+    }));
+    document.querySelector('[data-testid="guard-overlay"]').classList.add('active');
+  });
 
-  await page.waitForTimeout(900);
-  await page.getByTestId('control-screen-tap').click();
-  await expect(page.getByTestId('press-now-cue')).toHaveText('TAP SCREEN NOW', { timeout: 2600 });
-  await dispatchMotion(page, { x: 0, y: 0, z: 0 }, { alpha: 0, beta: 0, gamma: 0 });
-  await dispatchMotion(page, { x: 0.8, y: 0, z: 0 }, { alpha: 1, beta: 2, gamma: 1 });
   await expect(overlay).not.toHaveClass(/active/);
-
-  await page.waitForTimeout(300);
-  await page.getByTestId('control-movement').click();
-  await expect(page.getByTestId('press-now-cue')).toHaveText('MOVE PHONE NOW', { timeout: 2600 });
-  await dispatchMotion(page, { x: 0, y: 0, z: 0 }, { alpha: 0, beta: 0, gamma: 0 });
-  await dispatchMotion(page, { x: 1.2, y: 0, z: 0 }, { alpha: 20, beta: 50, gamma: 50 });
-  await expect(overlay).not.toHaveClass(/active/);
+  expect(await overlay.evaluate((element) => getComputedStyle(element).visibility)).toBe('hidden');
 
   const exported = await exportDiagnostics(page);
-  expect(exported.refinement.motionShape.rotationMagnitudeMinDps).toBe(5.5);
-  expect(exported.refinement.motionShape.rotationMagnitudeMaxDps).toBe(30);
-  expect(exported.refinement.visualPolicy).toContain('button-like motion');
-  expect(exported.refinement.events.some((event) => event.type === 'motion-shape-candidate')).toBe(true);
-  expect(exported.refinement.events.filter((event) => event.type === 'motion-shape-rejected').length).toBeGreaterThanOrEqual(2);
+  expect(exported.screenshotViabilityStudy.automaticBlackingDisabledDuringGuidedSuite).toBe(true);
+  expect(exported.screenshotViabilityStudy.events.some((event) =>
+    event.type === 'research-mode-changed' && event.enabled === true
+  )).toBe(true);
 });
