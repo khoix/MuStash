@@ -4,53 +4,42 @@ const manualGuardButton = document.getElementById('manualGuardButton');
 const volumeUpTrialButton = document.getElementById('volumeUpTrialButton');
 const volumeDownTrialButton = document.getElementById('volumeDownTrialButton');
 const trialActions = document.querySelector('.trial-actions');
-let pressCue = null;
-const triggerMetric = document.getElementById('triggerMetric');
-const lastTriggerMetric = document.getElementById('lastTriggerMetric');
+const trialCopy = document.querySelector('.trial-copy');
 const workletStatus = document.getElementById('workletStatus');
-const motionThresholdInput = document.getElementById('motionThresholdInput');
 const frequencyInput = document.getElementById('frequencyInput');
 
-const PRESET = {
+const STUDY_PRESET = {
   frequencyInput: 18500,
   toneInput: 15,
-  carrierThresholdInput: 30,
+  carrierThresholdInput: 40,
   transientThresholdInput: 300,
-  motionThresholdInput: 0.5,
+  motionThresholdInput: 5,
   guardDurationInput: 800
 };
 const REQUESTED_AUDIO_SAMPLE_RATE = 48000;
-const MOTION_ROTATION_MIN_DPS = 5.5;
-const MOTION_ROTATION_MAX_DPS = 30;
-const MOTION_QUIET_REARM_MS = 250;
 const CARRIER_NYQUIST_MARGIN = 0.45;
+const ANALYSIS_WINDOW_AFTER_CUE_MS = 1500;
 
-const refineEvents = [];
+const studyEvents = [];
 const trialRoles = [];
-let pendingRole = null;
+let pendingTrialMeta = null;
+let pressCue = null;
 let cuePerf = null;
-let previousMotion = null;
-let motionBurstLatched = false;
-let motionQuietTimer = null;
-let refineHoldUntil = -Infinity;
+let researchMode = false;
 let manualOverride = false;
 let audioPatchInstalled = false;
 let requestedSampleRate = null;
 let actualSampleRate = null;
 let audioPatchError = null;
-let lastRefinedMotionPerf = -Infinity;
-let lastRefineTriggerId = 0;
 
 installAudioContextPatch();
 installDiagnosticPatch();
+rewriteLabForScreenshotStudy();
 queueMicrotask(initializeAfterBase);
-window.addEventListener('devicemotion', observeMotion, { passive: true });
 
 startButton?.addEventListener('click', () => {
-  applyPreset();
-  previousMotion = null;
-  motionBurstLatched = false;
-  record('preset-auto-applied', { preset: PRESET });
+  applyStudyPreset();
+  record('study-preset-auto-applied', { preset: STUDY_PRESET });
 }, { capture: true });
 
 manualGuardButton?.addEventListener('click', () => {
@@ -61,49 +50,94 @@ manualGuardButton?.addEventListener('click', () => {
 volumeUpTrialButton?.addEventListener('click', () => registerTrial('volume-up'));
 volumeDownTrialButton?.addEventListener('click', () => registerTrial('volume-down'));
 
+window.addEventListener('guardlab:arm-role', (event) => {
+  const detail = event.detail || {};
+  pendingTrialMeta = {
+    role: detail.role || 'manual-volume-button',
+    expectedAction: detail.expectedAction || detail.role || 'manual-volume-button',
+    volumeCondition: detail.volumeCondition || null,
+    suiteStepId: detail.suiteStepId || null
+  };
+});
+
+window.addEventListener('guardlab:research-mode', (event) => {
+  setResearchMode(Boolean(event.detail?.enabled), event.detail?.reason || null);
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (!researchMode) return;
+  record('pointerdown', {
+    relativeToCueMs: cuePerf == null ? null : performance.now() - cuePerf,
+    trial: currentTrial(),
+    pointerType: event.pointerType || null,
+    x: Number.isFinite(event.clientX) ? event.clientX : null,
+    y: Number.isFinite(event.clientY) ? event.clientY : null,
+    target: describeTarget(event.target)
+  });
+}, { capture: true, passive: true });
+
 if (guardOverlay) {
   new MutationObserver(() => {
-    if (!guardOverlay.classList.contains('active')) return;
+    if (!researchMode || !guardOverlay.classList.contains('active')) return;
     if (manualOverride) return;
-    if (performance.now() < refineHoldUntil) return;
     queueMicrotask(() => guardOverlay.classList.remove('active'));
   }).observe(guardOverlay, { attributes: true, attributeFilter: ['class'] });
 }
 
 if (workletStatus) {
-  new MutationObserver(updateSampleRateFromUi).observe(workletStatus, { childList: true, characterData: true, subtree: true });
+  new MutationObserver(updateSampleRateFromUi).observe(workletStatus, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
 }
 
 function initializeAfterBase() {
   pressCue = document.querySelector('[data-testid="press-now-cue"]');
-  createControlButtons();
-  if (pressCue) {
-    new MutationObserver(() => {
-      if (!pressCue.hidden) {
-        cuePerf = performance.now();
-        rewriteControlCue();
-      }
-    }).observe(pressCue, { attributes: true, childList: true, characterData: true, subtree: true });
-  }
-  const observer = new MutationObserver(observeAcceptedBaseTrigger);
-  if (triggerMetric) observer.observe(triggerMetric, { childList: true, characterData: true, subtree: true });
-  if (lastTriggerMetric) observer.observe(lastTriggerMetric, { childList: true, characterData: true, subtree: true });
+  createManualStudyButtons();
+
+  const legacyPreset = document.querySelector('[data-testid="apply-test-preset"]');
+  if (legacyPreset) legacyPreset.remove();
+
+  if (!pressCue) return;
+  new MutationObserver(() => {
+    if (!pressCue.hidden) {
+      cuePerf = performance.now();
+      rewriteStudyCue();
+      record('study-cue-visible', {
+        trial: currentTrial(),
+        text: pressCue.textContent
+      });
+    } else {
+      cuePerf = null;
+    }
+  }).observe(pressCue, {
+    attributes: true,
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
 }
 
-function observeAcceptedBaseTrigger() {
-  const id = Number(triggerMetric?.textContent);
-  if (!Number.isFinite(id) || id <= lastRefineTriggerId) return;
-  lastRefineTriggerId = id;
-  const reason = lastTriggerMetric?.textContent?.trim() || '';
-  if (!reason.startsWith('carrier change')) return;
-  const age = performance.now() - lastRefinedMotionPerf;
-  if (age >= 0 && age <= 700 && carrierUsable()) {
-    record('refine-carrier-confirmed', { triggerId: id, reason, deltaMs: age, trial: currentTrial() });
-  }
+function rewriteLabForScreenshotStudy() {
+  const heroTitle = document.querySelector('.lab-hero h1');
+  const heroLede = document.querySelector('.lab-hero .lede');
+  const testStrong = document.querySelector('[data-testid="test-window"] strong');
+  const testSpan = document.querySelector('[data-testid="test-window"] span');
+  const trialTitle = document.querySelector('.trial-card h2');
+  const triggerLabel = document.querySelector('.metric-card:last-child span');
+
+  if (heroTitle) heroTitle.textContent = 'Can Safari reveal an actual screenshot attempt?';
+  if (heroLede) heroLede.textContent = 'Run controlled, real screenshot attempts and compare their raw browser-visible audio and motion signatures with no-action and ordinary-use controls. This is a go/no-go experiment, not a detector demo.';
+  if (testStrong) testStrong.textContent = 'During the guided screenshot study, automatic blacking is disabled.';
+  if (testSpan) testSpan.textContent = 'The lab records raw sensor telemetry around exact action cues so the experiment itself cannot be distorted by guard triggers.';
+  if (trialTitle) trialTitle.textContent = 'Screenshot viability study';
+  if (trialCopy) trialCopy.textContent = 'Use Run screenshot viability suite for the decisive test. It will walk through real screenshot attempts at low, medium, and maximum media volume, plus matched controls. The browser cannot read system volume, so you will set each level when prompted.';
+  if (triggerLabel) triggerLabel.textContent = 'Raw detector triggers';
 }
 
-function applyPreset() {
-  Object.entries(PRESET).forEach(([id, value]) => {
+function applyStudyPreset() {
+  Object.entries(STUDY_PRESET).forEach(([id, value]) => {
     const input = document.getElementById(id);
     if (!input) return;
     input.value = String(value);
@@ -111,13 +145,15 @@ function applyPreset() {
   });
 }
 
-function createControlButtons() {
+function createManualStudyButtons() {
   if (!trialActions) return;
   const controls = [
-    ['no-press', 'control-no-press', 'Arm no-press control'],
+    ['screenshot-attempt', 'arm-screenshot-attempt', 'Arm screenshot attempt'],
+    ['no-action', 'control-no-action', 'Arm no-action control'],
     ['screen-tap', 'control-screen-tap', 'Arm screen-tap control'],
     ['movement', 'control-movement', 'Arm movement control']
   ];
+
   for (const [role, testid, text] of controls) {
     if (trialActions.querySelector(`[data-testid="${testid}"]`)) continue;
     const button = document.createElement('button');
@@ -126,7 +162,12 @@ function createControlButtons() {
     button.dataset.testid = testid;
     button.textContent = text;
     button.addEventListener('click', () => {
-      pendingRole = role;
+      pendingTrialMeta = {
+        role,
+        expectedAction: role,
+        volumeCondition: null,
+        suiteStepId: null
+      };
       volumeDownTrialButton?.click();
     });
     trialActions.append(button);
@@ -134,78 +175,62 @@ function createControlButtons() {
 }
 
 function registerTrial(label) {
-  trialRoles.push({ label, role: pendingRole || 'expected-press' });
-  pendingRole = null;
+  const meta = pendingTrialMeta || {
+    role: 'manual-volume-button',
+    expectedAction: label,
+    volumeCondition: null,
+    suiteStepId: null
+  };
+  trialRoles.push({ label, ...meta });
+  pendingTrialMeta = null;
 }
 
 function currentTrial() {
   return trialRoles.length ? trialRoles[trialRoles.length - 1] : null;
 }
 
-function rewriteControlCue() {
+function rewriteStudyCue() {
   const trial = currentTrial();
   if (!trial || !pressCue) return;
-  let text = null;
-  if (trial.role === 'no-press') text = 'NO PRESS — HOLD STILL';
-  if (trial.role === 'screen-tap') text = 'TAP SCREEN NOW';
-  if (trial.role === 'movement') text = 'MOVE PHONE NOW';
+
+  const cues = {
+    'screenshot-attempt': 'TAKE SCREENSHOT NOW',
+    'no-action': 'DO NOTHING — HOLD STILL',
+    'screen-tap': 'TAP SCREEN NOW',
+    'movement': 'MOVE PHONE NOW'
+  };
+  const text = cues[trial.role];
   if (text && pressCue.textContent !== text) pressCue.textContent = text;
 }
 
-function observeMotion(event) {
-  const a = event.acceleration || event.accelerationIncludingGravity;
-  if (!a) return;
-  const current = { x: Number(a.x) || 0, y: Number(a.y) || 0, z: Number(a.z) || 0 };
-  if (!previousMotion) {
-    previousMotion = current;
-    return;
+function setResearchMode(enabled, reason) {
+  researchMode = enabled;
+  document.body.classList.toggle('screenshot-study-running', enabled);
+
+  if (guardOverlay) {
+    if (enabled) {
+      guardOverlay.classList.remove('active');
+      guardOverlay.style.setProperty('opacity', '0', 'important');
+      guardOverlay.style.setProperty('visibility', 'hidden', 'important');
+      guardOverlay.style.pointerEvents = 'none';
+    } else {
+      guardOverlay.style.removeProperty('opacity');
+      guardOverlay.style.removeProperty('visibility');
+      guardOverlay.style.removeProperty('pointer-events');
+    }
   }
-  const impulse = Math.hypot(current.x - previousMotion.x, current.y - previousMotion.y, current.z - previousMotion.z);
-  previousMotion = current;
-  const threshold = Number(motionThresholdInput?.value) || 0.5;
-  if (impulse < threshold) return;
 
-  if (motionQuietTimer) clearTimeout(motionQuietTimer);
-  motionQuietTimer = setTimeout(() => {
-    motionBurstLatched = false;
-    motionQuietTimer = null;
-  }, MOTION_QUIET_REARM_MS);
-
-  const rotation = Math.hypot(
-    Number(event.rotationRate?.alpha) || 0,
-    Number(event.rotationRate?.beta) || 0,
-    Number(event.rotationRate?.gamma) || 0
-  );
-  const trial = currentTrial();
-  const relativeToCueMs = cuePerf == null ? null : performance.now() - cuePerf;
-
-  if (motionBurstLatched) {
-    record('motion-shape-repeat-suppressed', { impulse, rotation, relativeToCueMs, trial });
-    return;
-  }
-  motionBurstLatched = true;
-
-  const accepted = rotation >= MOTION_ROTATION_MIN_DPS && rotation <= MOTION_ROTATION_MAX_DPS;
-  record(accepted ? 'motion-shape-candidate' : 'motion-shape-rejected', {
-    impulse,
-    rotation,
-    relativeToCueMs,
-    trial,
-    threshold,
-    minRotationDps: MOTION_ROTATION_MIN_DPS,
-    maxRotationDps: MOTION_ROTATION_MAX_DPS
+  record('research-mode-changed', {
+    enabled,
+    reason,
+    automaticBlackingDisabled: enabled
   });
-  if (!accepted || !pressCue || pressCue.hidden) return;
-
-  lastRefinedMotionPerf = performance.now();
-  refineHoldUntil = lastRefinedMotionPerf + (Number(document.getElementById('guardDurationInput')?.value) || 800);
-  guardOverlay?.classList.add('active');
-  record('refined-presentation-started', { impulse, rotation, relativeToCueMs, trial });
 }
 
 function installAudioContextPatch() {
   const Native = window.AudioContext || window.webkitAudioContext;
   if (typeof Native !== 'function') return;
+
   function GuardLabAudioContext(options = {}) {
     requestedSampleRate = REQUESTED_AUDIO_SAMPLE_RATE;
     try {
@@ -219,6 +244,7 @@ function installAudioContextPatch() {
       return context;
     }
   }
+
   try {
     GuardLabAudioContext.prototype = Native.prototype;
     Object.setPrototypeOf(GuardLabAudioContext, Native);
@@ -239,27 +265,40 @@ function carrierUsable() {
   updateSampleRateFromUi();
   const rate = Number(actualSampleRate);
   const frequency = Number(frequencyInput?.value);
-  return Number.isFinite(rate) && Number.isFinite(frequency) && frequency <= rate * CARRIER_NYQUIST_MARGIN;
+  return Number.isFinite(rate)
+    && Number.isFinite(frequency)
+    && frequency <= rate * CARRIER_NYQUIST_MARGIN;
 }
 
 function installDiagnosticPatch() {
   const BaseBlob = window.Blob;
   if (typeof BaseBlob !== 'function') return;
-  class RefinedBlob extends BaseBlob {
+
+  class ScreenshotStudyBlob extends BaseBlob {
     constructor(parts = [], options = {}) {
       let nextParts = parts;
       if (options?.type === 'application/json' && parts.length === 1 && typeof parts[0] === 'string') {
         try {
           const payload = JSON.parse(parts[0]);
           if (payload?.purpose === 'MuStash Guard Lab volume-button/screenshot-guard tuning') {
-            payload.refinement = {
+            payload.screenshotViabilityStudy = {
               version: 1,
+              question: 'Does an actual screenshot attempt produce a repeatable browser-visible signature that is absent from matched controls?',
+              decisionMode: 'raw-telemetry-only',
+              automaticBlackingDisabledDuringGuidedSuite: true,
+              analysisWindowAfterCueMs: ANALYSIS_WINDOW_AFTER_CUE_MS,
+              volumeConditions: {
+                operatorSet: true,
+                browserVerified: false,
+                levels: ['low', 'medium', 'maximum']
+              },
               presetAutoAppliedBeforeStart: true,
-              motionShape: {
-                impulseThresholdMps2: Number(motionThresholdInput?.value) || 0.5,
-                rotationMagnitudeMinDps: MOTION_ROTATION_MIN_DPS,
-                rotationMagnitudeMaxDps: MOTION_ROTATION_MAX_DPS,
-                quietRearmMs: MOTION_QUIET_REARM_MS
+              measurementPreset: {
+                carrierFrequencyHz: STUDY_PRESET.frequencyInput,
+                toneGainPercent: STUDY_PRESET.toneInput,
+                carrierTriggerPercent: STUDY_PRESET.carrierThresholdInput,
+                microphoneTriggerPercent: STUDY_PRESET.transientThresholdInput,
+                motionTriggerMps2: STUDY_PRESET.motionThresholdInput
               },
               audioContext: {
                 requestedSampleRate,
@@ -269,19 +308,36 @@ function installDiagnosticPatch() {
                 carrierFrequencyHz: Number(frequencyInput?.value) || null,
                 carrierUsable: carrierUsable()
               },
-              visualPolicy: 'only button-like motion may black; base carrier/raw-motion/mic activations are suppressed; a usable carrier edge within 700 ms is logged as confirmation',
-              events: refineEvents
+              events: studyEvents
             };
+
             (payload.trials || []).forEach((trial, index) => {
-              const role = trialRoles[index]?.role || 'expected-press';
-              trial.refinement = { role };
+              const meta = trialRoles[index] || null;
+              if (!meta) return;
+
+              trial.screenshotStudy = {
+                role: meta.role,
+                expectedAction: meta.expectedAction,
+                volumeCondition: meta.volumeCondition,
+                volumeConditionBrowserVerified: false,
+                suiteStepId: meta.suiteStepId,
+                cueAtMs: trial.cueAtMs ?? trial.groundTruth?.cueAtMs ?? null,
+                analysisWindowStartAtMs: trial.cueAtMs ?? trial.groundTruth?.cueAtMs ?? null,
+                analysisWindowEndAtMs: Number.isFinite(trial.cueAtMs ?? trial.groundTruth?.cueAtMs)
+                  ? (trial.cueAtMs ?? trial.groundTruth?.cueAtMs) + ANALYSIS_WINDOW_AFTER_CUE_MS
+                  : null
+              };
+
               if (trial.groundTruth) {
-                trial.groundTruth.role = role;
-                trial.groundTruth.expectedPress = role === 'expected-press' ? trialRoles[index]?.label || trial.label : null;
-                trial.groundTruth.expectedAction = role;
+                trial.groundTruth.role = meta.role;
+                trial.groundTruth.expectedAction = meta.expectedAction;
+                trial.groundTruth.expectedPress = meta.role === 'manual-volume-button' ? meta.label : null;
               }
-              trial.controlRole = role === 'expected-press' ? null : role;
+              trial.controlRole = ['no-action', 'screen-tap', 'movement'].includes(meta.role)
+                ? meta.role
+                : null;
             });
+
             nextParts = [JSON.stringify(payload, null, 2)];
           }
         } catch {}
@@ -289,11 +345,22 @@ function installDiagnosticPatch() {
       super(nextParts, options);
     }
   }
-  try { window.Blob = RefinedBlob; } catch {}
+
+  try { window.Blob = ScreenshotStudyBlob; } catch {}
+}
+
+function describeTarget(target) {
+  if (!(target instanceof Element)) return null;
+  return {
+    tag: target.tagName.toLowerCase(),
+    id: target.id || null,
+    testid: target.getAttribute('data-testid'),
+    role: target.getAttribute('role')
+  };
 }
 
 function record(type, data = {}) {
-  refineEvents.push({
+  studyEvents.push({
     type,
     wallTime: new Date().toISOString(),
     perfMs: performance.now(),
