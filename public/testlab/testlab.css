@@ -39,6 +39,16 @@
 .guard-overlay { position: absolute; inset: 0; z-index: 2; background: #000; opacity: 0; pointer-events: none; will-change: opacity; transition: none; }
 .guard-overlay.active { opacity: 1; }
 .test-window-placeholder { width: 100%; }
+.suite-launch { grid-column: 1 / -1; width: 100%; }
+.suite-status { grid-column: 1 / -1; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.suite-dialog-backdrop { position: fixed; inset: 0; z-index: 30000; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.58); backdrop-filter: blur(10px); }
+.suite-dialog-backdrop[hidden] { display: none; }
+.suite-dialog { width: min(520px, 100%); border: 1px solid var(--line); border-radius: 20px; background: var(--surface-strong); box-shadow: 0 24px 70px rgba(0,0,0,.35); padding: 22px; }
+.suite-dialog-kicker { color: var(--accent); font-size: .76rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.suite-dialog h3 { margin: 7px 0 10px; font-size: clamp(1.25rem, 4vw, 1.7rem); }
+.suite-dialog-copy { margin: 0; color: var(--muted); line-height: 1.55; }
+.suite-dialog-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.suite-dialog-actions button { flex: 1 1 160px; }
 @media (max-width: 760px) {
   .capability-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lab-actions { grid-template-columns: 1fr 1fr; }
@@ -61,6 +71,8 @@
   .test-surface.sensor-pinned .test-mark { width: 48px; height: 48px; border-radius: 15px; font-size: 1.55rem; }
   .test-surface.sensor-pinned span { display: none; }
   .test-surface.sensor-pinned > strong { font-size: .9rem; max-width: 34ch; }
+  .suite-dialog-backdrop { place-items: end center; padding: 12px; }
+  .suite-dialog { border-radius: 20px 20px 16px 16px; padding: 20px; }
 }
 @media (max-width: 520px) {
   .section-heading { flex-direction: column; }
@@ -72,4 +84,5 @@
   .lab-shell { margin-top: 2vh; }
   .test-surface { min-height: 210px; padding: 20px; }
   .test-surface.sensor-pinned { min-height: 0; height: 164px; padding: 12px 16px; }
+  .suite-dialog-actions { display: grid; grid-template-columns: 1fr; }
 }
