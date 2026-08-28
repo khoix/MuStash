@@ -47,40 +47,6 @@ When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with
 
 These controls are **deterrents, not DRM**. A browser must receive media bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording.
 
-### Guard Lab
-
-An experimental sensor test page is available at `/testlab/` when MuStash runs standalone, or `/mustash/testlab/` when mounted under main-server.
-
-The Guard Lab is intentionally isolated from normal share behavior. It is used to test whether physical volume-button presses can be inferred quickly enough from browser-visible side channels to trigger a black capture guard. It currently measures:
-
-- high-frequency carrier-amplitude changes through the speaker-to-microphone path,
-- sudden broadband microphone-energy transients,
-- device-motion impulses,
-- any `AudioVolumeUp` / `AudioVolumeDown` style key event a browser happens to expose,
-- timing from detector trigger to guard class application and the next animation frame.
-
-Starting the sensor test may require microphone permission and, on iOS, motion permission. Microphone samples are processed locally with an `AudioWorklet`; MuStash does not upload or store them. The lab also includes a permission-free manual black-guard button so compositor behavior can be tested separately from sensor detection.
-
-On mobile, pressing **Start sensors** immediately pins only the protected test window to the top of the viewport; it stays pinned while the sensors are active and returns to its normal location when **Stop** is pressed. The window is temporarily moved out of the composited card while pinned so its fixed positioning is truly viewport-relative. The trial and tuning controls remain in normal page flow below it.
-
-The lab has labeled five-second **Volume Up** and **Volume Down** trial windows. Arm the appropriate trial and then press that physical button once. This gives exported telemetry a ground-truth window that can be compared against detector responses. If the guard fires when no intended volume press occurred, **Mark last trigger false** records that classification for later tuning.
-
-Use **Export diagnostics** after a test session to download a self-contained JSON report. It includes:
-
-- browser, viewport, screen, touch, hardware, and connection context where exposed by the browser,
-- feature support and microphone/motion permission state,
-- initial/current detector settings and every threshold change,
-- AudioContext sample rate/latency values and microphone track settings/capabilities,
-- calibration timing and carrier/RMS baselines,
-- high-rate carrier/RMS telemetry with baselines, deltas, thresholds, and active trial labels,
-- motion vectors, rotation rates, reported/observed sample intervals, impulses, thresholds, and active trial labels,
-- labeled trial windows, detector triggers, suppressed triggers, manual classifications, visibility/orientation/resize events, and guard-render timing,
-- sample/trigger/drop counters and final session state.
-
-Telemetry is retained locally in a bounded in-memory buffer and is only written out when **Export diagnostics** is pressed. Attach the exported JSON to a review session so detector thresholds, signal choice, calibration, and guard timing can be tuned from real-device evidence rather than assumptions.
-
-Results are expected to vary by phone, browser, hardware volume level, microphone processing, and environment. The Guard Lab is experimental instrumentation, not production screenshot protection.
-
 ### Password-protected links
 
 The raw password never leaves the browser.
@@ -155,7 +121,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, persisted appearance preferences, Guard Lab route/manual-overlay behavior, viewport-fixed sensor pinning, labeled trials, and diagnostic JSON export structure.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
 
 ## Storage lifecycle
 
