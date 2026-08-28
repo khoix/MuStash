@@ -10,16 +10,22 @@ const volumeDownTrialButton = document.getElementById('volumeDownTrialButton');
 const trialState = document.getElementById('trialState');
 const trialCopy = document.querySelector('.trial-copy');
 const trialActions = document.querySelector('.trial-actions');
+const triggerMetric = document.getElementById('triggerMetric');
+const lastTriggerMetric = document.getElementById('lastTriggerMetric');
+const guardDurationInput = document.getElementById('guardDurationInput');
 
 const PRESS_CUE_DELAY_MS = 2000;
 const PRESS_WINDOW_MS = 700;
 const TRIAL_DURATION_MS = 5000;
+const FUSION_WINDOW_MS = 700;
+const CARRIER_QUIET_REARM_MS = 450;
+const MOTION_QUIET_REARM_MS = 250;
 const NEXT_TEST_PRESET = {
   frequencyInput: 18500,
   toneInput: 15,
   carrierThresholdInput: 30,
   transientThresholdInput: 300,
-  motionThresholdInput: 5,
+  motionThresholdInput: 0.5,
   guardDurationInput: 800
 };
 
@@ -43,13 +49,26 @@ let motionPermissionPrimedFromStartGesture = false;
 let motionPermissionResult = null;
 let motionPermissionError = null;
 
+let lastObservedTriggerId = 0;
+let carrierPresentationLatched = false;
+let motionPresentationLatched = false;
+let carrierQuietTimer = null;
+let motionQuietTimer = null;
+let lastCarrierEdgePerf = -Infinity;
+let lastMotionEdgePerf = -Infinity;
+let carrierEdgeSequence = 0;
+let motionEdgeSequence = 0;
+let lastFusionKey = null;
+let presentationHoldUntil = -Infinity;
+let presentationReleaseTimer = null;
+
 const pressCue = createPressCue();
 const presetButton = createPresetButton();
 installCachedMotionPermission();
 installDiagnosticInjection();
 
 if (trialCopy) {
-  trialCopy.textContent = 'Arm a trial and wait. After a two-second quiet period, the pinned test window will show PRESS NOW. Press the named physical volume button immediately. Sensor triggers are still logged, but the black guard is suppressed outside the short PRESS NOW window so false positives do not hide the test.';
+  trialCopy.textContent = 'Arm a trial and wait. After a two-second quiet period, the pinned test window will show PRESS NOW. Press the named physical volume button immediately. For a control trial, arm it normally but do not press the button. Raw detector activity is still exported, while visible guard presentation is limited to the short PRESS NOW window.';
 }
 
 startButton?.addEventListener('click', primeMotionPermissionFromStartGesture, { capture: true });
@@ -62,6 +81,7 @@ stopButton?.addEventListener('click', () => {
   startPending = false;
   pressWindowActive = false;
   finishGroundTruthTrial('sensors-stopped');
+  resetPresentationState();
   suppressOverlayNow();
   unpinTestWindow();
 });
@@ -84,9 +104,13 @@ if (armedPill) {
   }).observe(armedPill, { attributes: true, childList: true, characterData: true, subtree: true });
 }
 
-if (guardOverlay) {
-  new MutationObserver(enforceGuardGate).observe(guardOverlay, { attributes: true, attributeFilter: ['class'] });
-}
+const triggerObserver = new MutationObserver(() => {
+  processAcceptedTrigger();
+  enforceGuardGate();
+});
+if (guardOverlay) triggerObserver.observe(guardOverlay, { attributes: true, attributeFilter: ['class'] });
+if (triggerMetric) triggerObserver.observe(triggerMetric, { childList: true, characterData: true, subtree: true });
+if (lastTriggerMetric) triggerObserver.observe(lastTriggerMetric, { childList: true, characterData: true, subtree: true });
 
 const handleMediaChange = () => syncPinnedState();
 if (typeof mobileQuery.addEventListener === 'function') mobileQuery.addEventListener('change', handleMediaChange);
@@ -94,6 +118,7 @@ else mobileQuery.addListener(handleMediaChange);
 
 window.addEventListener('pagehide', () => {
   finishGroundTruthTrial('pagehide');
+  resetPresentationState();
   unpinTestWindow();
 });
 
@@ -144,6 +169,9 @@ function showPressCue(trial) {
     if (activeGroundTruthTrial !== trial) return;
     pressWindowActive = false;
     pressCue.hidden = true;
+    presentationHoldUntil = -Infinity;
+    if (presentationReleaseTimer) clearTimeout(presentationReleaseTimer);
+    presentationReleaseTimer = null;
     suppressOverlayNow();
     setTrialState(`${displayLabel(trial.label)} · recording tail…`, true);
     pushHelperEvent('press-window-ended', { localTrialId: trial.localId, label: trial.label });
@@ -157,6 +185,9 @@ function finishGroundTruthTrial(reason) {
   activeGroundTruthTrial = null;
   pressWindowActive = false;
   pressCue.hidden = true;
+  presentationHoldUntil = -Infinity;
+  if (presentationReleaseTimer) clearTimeout(presentationReleaseTimer);
+  presentationReleaseTimer = null;
   suppressOverlayNow();
   clearGroundTruthTimers();
 }
@@ -169,16 +200,173 @@ function clearGroundTruthTimers() {
   cueTimer = cueHideTimer = trialEndTimer = countdownTimer = null;
 }
 
+function processAcceptedTrigger() {
+  const triggerId = Number(triggerMetric?.textContent);
+  if (!Number.isFinite(triggerId) || triggerId <= lastObservedTriggerId) return;
+  lastObservedTriggerId = triggerId;
+
+  const reason = lastTriggerMetric?.textContent?.trim() || '';
+  const source = triggerSource(reason);
+  const now = performance.now();
+  const trialData = activeGroundTruthTrial
+    ? { localTrialId: activeGroundTruthTrial.localId, label: activeGroundTruthTrial.label }
+    : {};
+
+  let allowPresentation = true;
+  let fusedWith = null;
+  let fusionDeltaMs = null;
+
+  if (source === 'carrier') {
+    scheduleCarrierRearm();
+    if (carrierPresentationLatched) {
+      allowPresentation = false;
+      pushHelperEvent('presentation-repeat-suppressed', { ...trialData, triggerId, source, reason });
+    } else {
+      carrierPresentationLatched = true;
+      carrierEdgeSequence += 1;
+      const motionAge = now - lastMotionEdgePerf;
+      lastCarrierEdgePerf = now;
+      pushHelperEvent('presentation-edge', { ...trialData, triggerId, source, reason, edgeSequence: carrierEdgeSequence });
+      if (motionAge >= 0 && motionAge <= FUSION_WINDOW_MS) {
+        fusedWith = 'motion';
+        fusionDeltaMs = motionAge;
+        allowPresentation = false;
+        recordFusion('motion', 'carrier', motionAge, trialData);
+      }
+    }
+  } else if (source === 'motion') {
+    scheduleMotionRearm();
+    if (motionPresentationLatched) {
+      allowPresentation = false;
+      pushHelperEvent('presentation-repeat-suppressed', { ...trialData, triggerId, source, reason });
+    } else {
+      motionPresentationLatched = true;
+      motionEdgeSequence += 1;
+      const carrierAge = now - lastCarrierEdgePerf;
+      lastMotionEdgePerf = now;
+      pushHelperEvent('presentation-edge', { ...trialData, triggerId, source, reason, edgeSequence: motionEdgeSequence });
+      if (carrierAge >= 0 && carrierAge <= FUSION_WINDOW_MS) {
+        fusedWith = 'carrier';
+        fusionDeltaMs = carrierAge;
+        allowPresentation = false;
+        recordFusion('carrier', 'motion', carrierAge, trialData);
+      }
+    }
+  }
+
+  if (source === 'carrier' || source === 'motion') {
+    pushHelperEvent('presentation-decision', {
+      ...trialData,
+      triggerId,
+      source,
+      reason,
+      allowPresentation,
+      fusedWith,
+      fusionDeltaMs,
+      pressWindowActive
+    });
+
+    if (!pressWindowActive || !allowPresentation) {
+      suppressCurrentPresentation();
+      return;
+    }
+    startPresentationHold(now, triggerId, source, reason, trialData);
+  }
+}
+
+function triggerSource(reason) {
+  if (reason.startsWith('carrier change')) return 'carrier';
+  if (reason.startsWith('motion impulse')) return 'motion';
+  if (reason.startsWith('microphone transient')) return 'microphone-transient';
+  if (reason.startsWith('browser ')) return 'browser-key';
+  if (reason === 'manual test') return 'manual';
+  return 'other';
+}
+
+function scheduleCarrierRearm() {
+  if (carrierQuietTimer) clearTimeout(carrierQuietTimer);
+  carrierQuietTimer = window.setTimeout(() => {
+    carrierPresentationLatched = false;
+    carrierQuietTimer = null;
+    pushHelperEvent('presentation-rearmed', { source: 'carrier' });
+  }, CARRIER_QUIET_REARM_MS);
+}
+
+function scheduleMotionRearm() {
+  if (motionQuietTimer) clearTimeout(motionQuietTimer);
+  motionQuietTimer = window.setTimeout(() => {
+    motionPresentationLatched = false;
+    motionQuietTimer = null;
+    pushHelperEvent('presentation-rearmed', { source: 'motion' });
+  }, MOTION_QUIET_REARM_MS);
+}
+
+function recordFusion(leadSource, lagSource, deltaMs, trialData) {
+  const key = `${motionEdgeSequence}:${carrierEdgeSequence}`;
+  if (key === lastFusionKey) return;
+  lastFusionKey = key;
+  pushHelperEvent('sensor-fusion-confirmed', {
+    ...trialData,
+    leadSource,
+    lagSource,
+    deltaMs,
+    fusionWindowMs: FUSION_WINDOW_MS
+  });
+}
+
+function startPresentationHold(now, triggerId, source, reason, trialData) {
+  if (now < presentationHoldUntil) return;
+  const duration = Number(guardDurationInput?.value) || 800;
+  presentationHoldUntil = now + duration;
+  pushHelperEvent('presentation-started', { ...trialData, triggerId, source, reason, durationMs: duration });
+  if (presentationReleaseTimer) clearTimeout(presentationReleaseTimer);
+  presentationReleaseTimer = window.setTimeout(() => {
+    presentationHoldUntil = -Infinity;
+    presentationReleaseTimer = null;
+    if (!manualGuardOverride) guardOverlay?.classList.remove('active');
+    pushHelperEvent('presentation-released', { ...trialData, triggerId, source });
+  }, duration);
+}
+
+function suppressCurrentPresentation() {
+  queueMicrotask(() => {
+    if (manualGuardOverride) return;
+    if (performance.now() < presentationHoldUntil) return;
+    guardOverlay?.classList.remove('active');
+  });
+}
+
 function enforceGuardGate() {
   if (!guardOverlay?.classList.contains('active')) return;
   const sensorsActive = startPending || Boolean(armedPill?.classList.contains('armed'));
   if (!sensorsActive) return;
-  if (manualGuardOverride || pressWindowActive) return;
-  guardOverlay.classList.remove('active');
+  if (manualGuardOverride) return;
+  if (!pressWindowActive) {
+    guardOverlay.classList.remove('active');
+    return;
+  }
+  if (performance.now() >= presentationHoldUntil && presentationHoldUntil !== -Infinity) {
+    guardOverlay.classList.remove('active');
+  }
 }
 
 function suppressOverlayNow() {
   if (!manualGuardOverride) guardOverlay?.classList.remove('active');
+}
+
+function resetPresentationState() {
+  carrierPresentationLatched = false;
+  motionPresentationLatched = false;
+  lastCarrierEdgePerf = -Infinity;
+  lastMotionEdgePerf = -Infinity;
+  carrierEdgeSequence = 0;
+  motionEdgeSequence = 0;
+  lastFusionKey = null;
+  presentationHoldUntil = -Infinity;
+  if (carrierQuietTimer) clearTimeout(carrierQuietTimer);
+  if (motionQuietTimer) clearTimeout(motionQuietTimer);
+  if (presentationReleaseTimer) clearTimeout(presentationReleaseTimer);
+  carrierQuietTimer = motionQuietTimer = presentationReleaseTimer = null;
 }
 
 function installCachedMotionPermission() {
@@ -278,6 +466,14 @@ function injectGroundTruthDiagnostics(payload) {
     pressWindowMs: PRESS_WINDOW_MS,
     guardGate: 'sensor-driven black guard is visible only during PRESS NOW windows; manual guard remains unrestricted'
   };
+  payload.detectorPresentation = {
+    version: 1,
+    rawDetectorEventsPreserved: true,
+    carrierQuietRearmMs: CARRIER_QUIET_REARM_MS,
+    motionQuietRearmMs: MOTION_QUIET_REARM_MS,
+    fusionWindowMs: FUSION_WINDOW_MS,
+    behavior: 'motion and carrier bursts are presented once; the first signal blacks immediately and a second signal within the fusion window confirms without restarting the guard'
+  };
 
   payload.motion = payload.motion || {};
   payload.motion.permissionRequestedFromStartGesture = motionPermissionPrimedFromStartGesture;
@@ -302,7 +498,6 @@ function injectGroundTruthDiagnostics(payload) {
       completionReason: localTrial.completionReason,
       completedAtMs: completedOffset === null ? exportedTrial.completedAtMs ?? null : exportedTrial.armedAtMs + completedOffset
     };
-    // Duplicate the key timestamps at trial top level for simple analysis scripts.
     exportedTrial.cueAtMs = cueAtMs;
     exportedTrial.pressWindowStartAtMs = cueAtMs;
     exportedTrial.pressWindowEndAtMs = cueAtMs === null ? null : cueAtMs + PRESS_WINDOW_MS;
@@ -401,9 +596,6 @@ function pinTestWindow() {
   placeholder.style.height = `${testWindow.getBoundingClientRect().height}px`;
   testWindow.before(placeholder);
 
-  // Move the actual test window out of the card before fixing it to the viewport.
-  // The card uses compositing effects that can otherwise establish a containing block
-  // and make position: fixed behave like a positioned element inside the card.
   document.body.appendChild(testWindow);
   testWindow.classList.add('sensor-pinned');
   document.body.classList.add('guard-lab-sensors-pinned');
