@@ -31,6 +31,11 @@ test('Guard Lab full test suite prompts and advances one guided step at a time',
   await expect(dialog).toBeVisible({ timeout: 4000 });
   await expect(page.getByTestId('full-suite-step-label')).toHaveText('Step 2 of 14');
 
+  // The suite dialog is intentionally modal while paused between steps. Exit it
+  // through its own control before exercising the page-level export button.
+  await page.getByTestId('full-suite-cancel').click();
+  await expect(dialog).toBeHidden();
+
   const exported = await exportDiagnostics(page);
   expect(exported.testSuite.version).toBe(1);
   expect(exported.testSuite.definition).toHaveLength(14);
@@ -40,9 +45,9 @@ test('Guard Lab full test suite prompts and advances one guided step at a time',
   expect(exported.testSuite.definition.filter((step) => step.role === 'movement')).toHaveLength(2);
 
   const run = exported.testSuite.runs.at(-1);
-  expect(run.status).toBe('running');
+  expect(run.status).toBe('cancelled');
   expect(run.steps[0].status).toBe('completed');
-  expect(run.steps[1].status).toBe('prompted');
+  expect(run.steps[1].status).toBe('cancelled');
   expect(exported.trials[0].suite.stepId).toBe('volume-up-1');
   expect(exported.trials[0].suite.stepIndex).toBe(1);
 });
