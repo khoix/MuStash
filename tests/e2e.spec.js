@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlL8AAAAASUVORK5CYII=', 'base64');
+const docx = Buffer.from('UEsDBBQAAAAIACuBHV0XmADX6wAAALIBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QyU4DMQy98xWRr2gmAweEUKc9sByBQ/kAK/HMRM2mOC3t3+NpoQdUONpvs99itQ9e7aiwS7GHm7YDRdEk6+LYw8f6pbkHxRWjRZ8i9XAghtXyarE+ZGIl4sg9TLXmB63ZTBSQ25QpCjKkErDKWEad0WxwJH3bdXfapFgp1qbOHiBmTzTg1lf1vJf96ZJCnkE9nphzWA+Ys3cGq+B6F+2vmOY7ohXlkcOTy3wtBNCXI2bo74Qf4ZuUU5wl9Y6lvmIQmv5MxWqbzDaItP3f58KlaRicobN+dsslGWKW1oNvz0hAF88f6GPlyy9QSwMEFAAAAAgAK4EdXT+t/vqvAAAALAEAAAsAAABfcmVscy8ucmVsc43POw7CMAwA0J1TRN5pWgaEUEMXhNQVlQNEiZtWNB/F4dPbk4EBKgZG/57tunnaid0x0uidgKoogaFTXo/OCLh0p/UOGCXptJy8QwEzEjSHVX3GSaY8Q8MYiGXEkYAhpbDnnNSAVlLhA7pc6X20MuUwGh6kukqDfFOWWx4/DVigrNUCYqsrYN0c8B/c9/2o8OjVzaJLP3YsOrIso8Ek4OGj5vqdLjILPJ/Dv548vABQSwMEFAAAAAgAK4EdXX2xK7ikAAAA1wAAABEAAAB3b3JkL2RvY3VtZW50LnhtbEWOvQ7CMAyEd54iyk5TGBCq+rMhFibgAUJjaKXEjuKU0rcnKQPLZ91ZPl/dfZwVbwg8EjZyV5RSAPZkRnw18n47bY9ScNRotCWERi7Asms39VwZ6icHGEVKQK7mRg4x+kop7gdwmgvygGn3pOB0TDK81EzB+EA9MKcHzqp9WR6U0yPKNkU+yCx5+oyQEdszWEviMl2j5qFW2coMK/3K35n6V2q/UEsBAhQDFAAAAAgAK4EdXReYANfrAAAAsgEAABMAAAAAAAAAAAAAAIABAAAAAFtDb250ZW50X1R5cGVzXS54bWxQSwECFAMUAAAACAArgR1dP63++q8AAAAsAQAACwAAAAAAAAAAAAAAgAEcAQAAX3JlbHMvLnJlbHNQSwECFAMUAAAACAArgR1dfbEruKQAAADXAAAAEQAAAAAAAAAAAAAAgAH0AQAAd29yZC9kb2N1bWVudC54bWxQSwUGAAAAAAMAAwC5AAAAxwIAAAAA', 'base64');
+
+async function uploadFile(page, file, { password = '', allowDownload = true } = {}) {
+  await page.goto('/');
+  await page.getByTestId('file-input').setInputFiles(file);
+  await page.getByTestId('ttl-input').fill('1');
+  await expect(page.getByTestId('allow-download')).toBeChecked();
+  if (!allowDownload) await page.getByTestId('allow-download').uncheck();
+  if (password) await page.getByTestId('password-input').fill(password);
+  await page.getByTestId('stash-button').click();
+  await expect(page.getByTestId('result-card')).toBeVisible();
+  await expect(page.getByTestId('share-url')).not.toHaveValue('');
+  return page.getByTestId('share-url').inputValue();
+}
 
 async function uploadPng(page, password = '', allowDownload = true) {
   await page.goto('/');
@@ -30,6 +44,56 @@ test('uploads, previews, and downloads an unrestricted image', async ({ page }) 
   const downloadResponse = await page.request.get(new URL(`${contentUrl}?download=1`, page.url()).href);
   expect(downloadResponse.status()).toBe(200);
   expect(downloadResponse.headers()['content-disposition']).toContain('attachment');
+});
+
+test('accepts UTF-8 TXT files and serves them as non-executable text', async ({ page }) => {
+  const shareUrl = await uploadFile(page, {
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Hello from MuStash.\n<script>alert(1)</script>\n', 'utf8')
+  });
+
+  await page.goto(shareUrl);
+  await expect(page.getByTestId('media-state')).toBeVisible();
+  const preview = page.locator('iframe[data-testid="media-preview"]');
+  await expect(preview).toBeVisible();
+  const contentUrl = await preview.getAttribute('src');
+  const response = await page.request.get(new URL(contentUrl, page.url()).href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('text/plain');
+  expect(response.headers()['x-content-type-options']).toBe('nosniff');
+  expect(await response.text()).toContain('<script>alert(1)</script>');
+});
+
+test('accepts PDF files for inline browser preview', async ({ page }) => {
+  const pdf = Buffer.from('%PDF-1.4\n%MuStash\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n', 'ascii');
+  const shareUrl = await uploadFile(page, { name: 'sample.pdf', mimeType: 'application/pdf', buffer: pdf });
+
+  await page.goto(shareUrl);
+  const preview = page.locator('iframe[data-testid="media-preview"]');
+  await expect(preview).toBeVisible();
+  const contentUrl = await preview.getAttribute('src');
+  const response = await page.request.get(new URL(contentUrl, page.url()).href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('application/pdf');
+});
+
+test('accepts DOCX files and offers them as downloads', async ({ page }) => {
+  const shareUrl = await uploadFile(page, {
+    name: 'sample.docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    buffer: docx
+  });
+
+  await page.goto(shareUrl);
+  await expect(page.getByTestId('document-placeholder')).toBeVisible();
+  const downloadButton = page.getByTestId('download-button');
+  await expect(downloadButton).toBeVisible();
+  const downloadUrl = await downloadButton.getAttribute('href');
+  const response = await page.request.get(new URL(downloadUrl, page.url()).href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  expect(response.headers()['content-disposition']).toContain('attachment');
 });
 
 test('preview-only share hides download and rejects attachment requests', async ({ page }) => {
@@ -79,11 +143,11 @@ test('password share uses a derived fragment key and can also be unlocked manual
   await context.close();
 });
 
-test('rejects unsupported files server-side', async ({ page }) => {
+test('rejects unsupported active-content files server-side', async ({ page }) => {
   await page.goto('/');
-  await page.getByTestId('file-input').setInputFiles({ name: 'payload.txt', mimeType: 'text/plain', buffer: Buffer.from('<script>alert(1)</script>') });
+  await page.getByTestId('file-input').setInputFiles({ name: 'payload.html', mimeType: 'text/html', buffer: Buffer.from('<script>alert(1)</script>') });
   await page.getByTestId('stash-button').click();
-  await expect(page.locator('#status')).toContainText('Unsupported media type');
+  await expect(page.locator('#status')).toContainText('Unsupported file type');
   await expect(page.getByTestId('result-card')).toBeHidden();
 });
 

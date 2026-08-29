@@ -43,7 +43,22 @@ const allowedTypes = new Map([
   ['audio/ogg', 'ogg'],
   ['audio/mp4', 'm4a'],
   ['audio/aac', 'aac'],
-  ['audio/flac', 'flac']
+  ['audio/flac', 'flac'],
+  ['application/pdf', 'pdf'],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'],
+  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx'],
+  ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'pptx'],
+  ['application/vnd.oasis.opendocument.text', 'odt'],
+  ['application/vnd.oasis.opendocument.spreadsheet', 'ods'],
+  ['application/vnd.oasis.opendocument.presentation', 'odp']
+]);
+
+const allowedTextExtensions = new Map([
+  ['.txt', { mime: 'text/plain; charset=utf-8', ext: 'txt' }],
+  ['.csv', { mime: 'text/csv; charset=utf-8', ext: 'csv' }],
+  ['.md', { mime: 'text/markdown; charset=utf-8', ext: 'md' }],
+  ['.markdown', { mime: 'text/markdown; charset=utf-8', ext: 'md' }],
+  ['.json', { mime: 'application/json; charset=utf-8', ext: 'json' }]
 ]);
 
 export async function createApp() {
@@ -73,6 +88,7 @@ export async function createApp() {
         styleSrc: ["'self'"],
         imgSrc: ["'self'", 'blob:', 'data:'],
         mediaSrc: ["'self'", 'blob:'],
+        frameSrc: ["'self'"],
         connectSrc: ["'self'"]
       }
     },
@@ -135,11 +151,11 @@ export async function createApp() {
   app.post('/api/shares', sameOriginOnly, uploadLimiter, upload.single('file'), async (req, res, next) => {
     let tempPath = req.file?.path;
     try {
-      if (!req.file) return res.status(400).json({ error: 'Choose one media file to upload.' });
+      if (!req.file) return res.status(400).json({ error: 'Choose one file to upload.' });
 
-      const detected = await fileTypeFromFile(req.file.path);
-      if (!detected || !allowedTypes.has(detected.mime)) {
-        return res.status(415).json({ error: 'Unsupported media type. Use a common image, audio, or video format.' });
+      const detected = await detectAllowedUpload(req.file.path, req.file.originalname);
+      if (!detected) {
+        return res.status(415).json({ error: 'Unsupported file type. Use a supported image, audio, video, PDF, Office/OpenDocument, or UTF-8 text format.' });
       }
 
       const ttlHours = parseTtl(req.body.ttlHours);
@@ -160,7 +176,7 @@ export async function createApp() {
       }
 
       const id = crypto.randomUUID();
-      const ext = allowedTypes.get(detected.mime);
+      const { mime, ext } = detected;
       const storageName = `${id}.${ext}`;
       const finalPath = path.join(uploadsDir, storageName);
       await fs.rename(req.file.path, finalPath);
@@ -173,7 +189,7 @@ export async function createApp() {
       const meta = {
         id,
         originalName: safeDisplayName(req.file.originalname),
-        mime: detected.mime,
+        mime,
         ext,
         size: req.file.size,
         storageName,
@@ -335,6 +351,41 @@ async function resolveServerSecret() {
   return generated;
 }
 
+async function detectAllowedUpload(filePath, originalName) {
+  const detected = await fileTypeFromFile(filePath);
+  if (detected) {
+    const ext = allowedTypes.get(detected.mime);
+    return ext ? { mime: detected.mime, ext } : null;
+  }
+
+  const textType = allowedTextExtensions.get(path.extname(String(originalName || '')).toLowerCase());
+  if (!textType || !(await isUtf8TextFile(filePath))) return null;
+  return textType;
+}
+
+async function isUtf8TextFile(filePath) {
+  const handle = await fs.open(filePath, 'r');
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const buffer = Buffer.allocUnsafe(64 * 1024);
+  let position = 0;
+
+  try {
+    while (true) {
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, position);
+      if (bytesRead === 0) break;
+      position += bytesRead;
+      const text = decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
+      if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(text)) return false;
+    }
+    decoder.decode();
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await handle.close();
+  }
+}
+
 function parseTtl(raw) {
   if (raw === undefined || raw === '') return DEFAULT_TTL_HOURS;
   const value = Number(raw);
@@ -351,11 +402,11 @@ function parseAllowDownload(raw) {
 }
 
 function safeDisplayName(name) {
-  const base = path.basename(String(name || 'media'))
+  const base = path.basename(String(name || 'file'))
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .replace(/[<>:"/\\|?*]/g, '_')
     .trim();
-  return (base || 'media').slice(0, 120);
+  return (base || 'file').slice(0, 120);
 }
 
 function validId(id) {

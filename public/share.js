@@ -98,28 +98,74 @@ async function showMedia() {
   if (allowDownload) downloadButton.href = `${meta.contentUrl}?download=1`;
   else downloadButton.removeAttribute('href');
   mediaFrame.classList.toggle('preview-only', !allowDownload);
-  mediaFrame.replaceChildren(createMedia(meta.mime, meta.contentUrl, allowDownload));
+  mediaFrame.replaceChildren(await createPreview(meta.mime, meta.contentUrl, allowDownload));
 }
 
-function createMedia(type, src, allowDownload) {
+async function createPreview(type, src, allowDownload) {
+  const mime = String(type || '').toLowerCase();
   let element;
-  if (type.startsWith('image/')) {
+
+  if (mime.startsWith('image/')) {
     element = document.createElement('img');
     element.alt = meta.originalName;
-  } else if (type.startsWith('video/')) {
+  } else if (mime.startsWith('video/')) {
     element = document.createElement('video');
     element.controls = true;
     element.preload = 'metadata';
     element.playsInline = true;
-  } else {
+  } else if (mime.startsWith('audio/')) {
     element = document.createElement('audio');
     element.controls = true;
     element.preload = 'metadata';
+  } else if (isBrowserPreviewableDocument(mime)) {
+    element = document.createElement('iframe');
+    element.title = `${meta.originalName} preview`;
+    element.style.width = '100%';
+    element.style.height = 'min(70vh, 760px)';
+    element.style.minHeight = '360px';
+    element.style.border = '0';
+    element.style.background = '#fff';
+    element.loading = 'eager';
+    element.src = mime.startsWith('application/pdf') && !allowDownload
+      ? `${src}#toolbar=0&navpanes=0`
+      : src;
+  } else {
+    return createDocumentPlaceholder(allowDownload);
   }
-  element.src = src;
+
+  if (!element.src) element.src = src;
   element.dataset.testid = 'media-preview';
   if (!allowDownload) applyPreviewOnlyProtections(element);
   return element;
+}
+
+function isBrowserPreviewableDocument(mime) {
+  return mime.startsWith('application/pdf')
+    || mime.startsWith('text/')
+    || mime.startsWith('application/json');
+}
+
+function createDocumentPlaceholder(allowDownload) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'center-state';
+  wrapper.style.minHeight = '260px';
+  wrapper.dataset.testid = 'document-placeholder';
+
+  const mark = document.createElement('div');
+  mark.className = 'big-mark';
+  mark.setAttribute('aria-hidden', 'true');
+  mark.textContent = '≡';
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'Document ready';
+
+  const copy = document.createElement('p');
+  copy.textContent = allowDownload
+    ? 'This file type does not have a browser-native preview. Use Download to open it in a compatible app.'
+    : 'This file type does not have a browser-native preview, and downloads are disabled for this stash.';
+
+  wrapper.append(mark, heading, copy);
+  return wrapper;
 }
 
 function applyPreviewOnlyProtections(element) {

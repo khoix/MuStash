@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111315" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="MuStash — temporary media sharing without the clutter.">
-  <title>MuStash — temporary media sharing</title>
+  <meta name="description" content="MuStash — temporary file sharing without the clutter.">
+  <title>MuStash — temporary file sharing</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
@@ -47,11 +47,11 @@
     <section class="card" id="uploadCard">
       <form id="uploadForm" novalidate>
         <label class="dropzone" id="dropzone" for="fileInput" data-drag-enabled="false">
-          <input id="fileInput" name="file" type="file" accept="image/*,audio/*,video/*" required data-testid="file-input">
+          <input id="fileInput" name="file" type="file" accept="image/*,audio/*,video/*,.txt,.csv,.md,.markdown,.json,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp" required data-testid="file-input">
           <span class="drop-icon" aria-hidden="true">↥</span>
-          <strong>Choose media</strong>
+          <strong>Choose a file</strong>
           <span id="dropHint" data-testid="drop-hint" hidden>or drop it here</span>
-          <small id="limitText">Common image, audio, and video formats</small>
+          <small id="limitText">Media, PDF, Office/OpenDocument, and UTF-8 text files</small>
         </label>
 
         <div class="preview" id="localPreview" hidden aria-live="polite"></div>

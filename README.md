@@ -1,6 +1,6 @@
 # MuStash
 
-**MuStash** is a tiny, self-hosted temporary media share: upload a file, choose how long it should live, optionally protect it with a password, then send the generated link.
+**MuStash** is a tiny, self-hosted temporary file share: upload a file, choose how long it should live, optionally protect it with a password, then send the generated link.
 
 The name is both a nod to a **mustache** and to **µ (micro) + stash** — a small place to put something for a little while.
 
@@ -9,6 +9,8 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Temporary server-side storage with a 24-hour default expiration.
 - Custom expiration from 15 minutes up to 7 days by default, with on-page TTL steppers.
 - Image, video, and audio previews on desktop and mobile.
+- PDF and UTF-8 text-document previews in the browser.
+- Common document uploads including DOCX, XLSX, PPTX, ODT, ODS, and ODP; formats without a browser-native preview remain downloadable.
 - Native Web Share API support (iOS share sheet / Android share sheet), with clipboard fallback.
 - Optional password-derived share links (lock icon in the password field).
 - Per-share **Allow Download** control, enabled by default; preview-only shares hide the download action and reject explicit attachment requests server-side.
@@ -21,22 +23,36 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Can run standalone or mount under another Express app (e.g. main-server at `/mustash`).
 - Playwright E2E coverage for desktop and mobile Chromium, run in GitHub Actions.
 
+## Supported file types
+
+MuStash currently accepts:
+
+- Images: JPEG, PNG, GIF, WebP, AVIF
+- Video: MP4, WebM
+- Audio: MP3, WAV, OGG, M4A/MP4 audio, AAC, FLAC
+- Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP
+- UTF-8 text: TXT, CSV, Markdown (`.md` / `.markdown`), JSON
+
+HTML and SVG are intentionally not accepted as upload formats.
+
 ## Security model
 
-MuStash intentionally does **not** trust filenames or browser-provided MIME types.
+MuStash intentionally does **not** trust filenames or browser-provided MIME types for binary files.
 
-- Actual file type is detected from file contents with `file-type`.
-- Only an allowlist of common image/audio/video formats is accepted. HTML and SVG are rejected.
+- Binary file type is detected from file contents with `file-type`.
+- Only an allowlist of image/audio/video/document formats is accepted.
+- Plain-text formats use a small extension allowlist **plus** streaming UTF-8 validation and rejection of binary control characters.
+- Uploaded text is always served using an explicit non-executable text/JSON MIME type together with `X-Content-Type-Options: nosniff`; text content is never inserted into MuStash's page as HTML.
 - Uploaded files receive server-generated UUID filenames; the original filename is display metadata only.
 - Upload size and TTL are server-side bounded.
 - Helmet sets CSP and other security headers (`nosniff`, etc.). When served over plain HTTP (LAN / reverse proxy), HSTS and `upgrade-insecure-requests` are disabled so CSS/JS load correctly.
 - Upload and unlock endpoints are rate-limited and reject cross-site browser POSTs.
 - Metadata files are written atomically.
-- Protected content requires a short-lived, HttpOnly, SameSite authorization cookie before media can be fetched. There are no user accounts or server-side sessions.
+- Protected content requires a short-lived, HttpOnly, SameSite authorization cookie before file content can be fetched. There are no user accounts or server-side sessions.
 
 ### Preview-only shares
 
-When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with the share and treats the media as preview-only:
+When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with the share and treats the file as preview-only:
 
 - The recipient-facing Download button is removed.
 - Requests using `?download=1` are rejected with HTTP `403`.
@@ -44,8 +60,9 @@ When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with
 - The viewer disables media dragging and suppresses the media context menu.
 - Audio/video elements request browser controls that omit download and remote-playback actions, and disable Picture-in-Picture / remote playback where the browser exposes those controls.
 - Mobile touch-callout and image dragging are suppressed where supported.
+- PDF/text previews use the browser's native document rendering; Office/OpenDocument formats that lack a native browser preview show a document placeholder when downloads are disabled.
 
-These controls are **deterrents, not DRM**. A browser must receive media bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording.
+These controls are **deterrents, not DRM**. A browser must receive file bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording. Browser-native PDF/document viewers may expose capabilities that MuStash cannot fully suppress.
 
 ### Password-protected links
 
@@ -121,11 +138,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, server-side unsupported-file rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, password-protected shares, supported text/PDF/DOCX documents, server-side active-content rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
 
 ## Storage lifecycle
 
-Each share has one metadata JSON record and one opaque media file under `DATA_DIR`. Expired files are removed by a 15-minute cleanup job, and every metadata/content request also checks expiration so an expired share becomes inaccessible immediately even before cleanup runs.
+Each share has one metadata JSON record and one opaque file under `DATA_DIR`. Expired files are removed by a 15-minute cleanup job, and every metadata/content request also checks expiration so an expired share becomes inaccessible immediately even before cleanup runs.
 
 ## Release notes
 
