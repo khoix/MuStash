@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "private": true,
   "type": "module",
-  "description": "Minimal temporary media sharing with expiring links.",
+  "description": "Minimal temporary file sharing with expiring links.",
   "engines": {
     "node": ">=22.0.0"
   },

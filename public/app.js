@@ -40,7 +40,7 @@ form.addEventListener('submit', async (event) => {
   setStatus('');
   resultCard.hidden = true;
   const file = fileInput.files[0];
-  if (!file) return setStatus('Choose a media file first.', true);
+  if (!file) return setStatus('Choose a file first.', true);
   if (file.size > config.maxFileMb * 1024 * 1024) return setStatus(`That file is over the ${config.maxFileMb} MB limit.`, true);
 
   const ttlHours = Number(ttlInput.value);
@@ -150,7 +150,7 @@ async function loadConfig() {
     config = await response.json();
     ttlInput.max = String(config.maxTtlHours);
     ttlInput.value = String(config.defaultTtlHours);
-    limitText.textContent = `Images, audio, or video · up to ${config.maxFileMb} MB`;
+    limitText.textContent = `Media and documents · up to ${config.maxFileMb} MB`;
   } catch {}
 }
 
