@@ -209,9 +209,9 @@ function formatExpiry(value) {
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
   const hours24 = date.getHours();
-  const hours12 = pad(hours24 % 12 || 12);
+  const hours12 = hours24 % 12 || 12;
   const minutes = pad(date.getMinutes());
   const seconds = pad(date.getSeconds());
   const period = hours24 >= 12 ? 'p' : 'a';
-  return `${year}-${month}-${day}, ${hours12}:${minutes}:${seconds} ${period}`;
+  return `${year}-${month}-${day}, ${hours12}:${minutes}:${seconds}${period}`;
 }
