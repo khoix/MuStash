@@ -5,6 +5,8 @@ initTheme();
 
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
+const cameraPhotoInput = document.getElementById('cameraPhotoInput');
+const takePhotoButton = document.getElementById('takePhotoButton');
 const dropzone = document.getElementById('dropzone');
 const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
@@ -22,11 +24,14 @@ const openButton = document.getElementById('openButton');
 const limitText = document.getElementById('limitText');
 
 let previewUrl = null;
+let selectedFile = null;
 let config = { maxFileMb: 100, maxTtlHours: 168, defaultTtlHours: 24 };
 const desktopDragQuery = matchMedia('(min-width: 621px) and (hover: hover) and (pointer: fine)');
 
 loadConfig();
-fileInput.addEventListener('change', () => renderLocalPreview(fileInput.files[0]));
+fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
+cameraPhotoInput.addEventListener('change', () => selectFile(cameraPhotoInput.files[0]));
+takePhotoButton.addEventListener('click', () => cameraPhotoInput.click());
 configureDragAndDrop();
 desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
@@ -39,8 +44,8 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('');
   resultCard.hidden = true;
-  const file = fileInput.files[0];
-  if (!file) return setStatus('Choose a file first.', true);
+  const file = selectedFile;
+  if (!file) return setStatus('Choose or capture a file first.', true);
   if (file.size > config.maxFileMb * 1024 * 1024) return setStatus(`That file is over the ${config.maxFileMb} MB limit.`, true);
 
   const ttlHours = Number(ttlInput.value);
@@ -137,9 +142,12 @@ function handleDragEvent(event) {
 function handleDrop(event) {
   const [file] = event.dataTransfer?.files || [];
   if (!file) return;
-  const transfer = new DataTransfer();
-  transfer.items.add(file);
-  fileInput.files = transfer.files;
+  selectFile(file);
+}
+
+function selectFile(file) {
+  if (!file) return;
+  selectedFile = file;
   renderLocalPreview(file);
 }
 
