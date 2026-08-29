@@ -12,6 +12,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - PDF and UTF-8 text-document previews in the browser.
 - Common document uploads including DOCX, XLSX, PPTX, ODT, ODS, and ODP; formats without a browser-native preview remain downloadable.
 - Native camera photo capture on supported mobile browsers; captured photos enter the same preview/upload flow as selected files.
+- Selected files can be removed from the pre-upload preview before they are stashed.
 - Native Web Share API support (iOS share sheet / Android share sheet), with clipboard fallback.
 - Optional password-derived share links (lock icon in the password field).
 - Per-share **Allow Download** control, enabled by default; preview-only shares hide the download action and reject explicit attachment requests server-side.
@@ -139,7 +140,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, native camera-photo selection, password-protected shares, supported text/PDF/DOCX documents, server-side active-content rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers uploads/previews, mobile-only native camera-photo selection, removable pre-upload selections, password-protected shares, supported text/PDF/DOCX documents, server-side active-content rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
 
 ## Storage lifecycle
 

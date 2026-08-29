@@ -9,7 +9,8 @@
 - Allow Download copy is a single label, vertically centered to the TTL input control.
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
 - MuStash now presents itself as temporary **file** sharing rather than media-only sharing.
-- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, and camera-photo selection.
+- The **Take photo** action is now exposed only on mobile layouts.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, mobile-only camera-photo selection, and removable pre-upload selections.
 
 ### Added
 
@@ -18,7 +19,8 @@
 - Added common document support: PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP.
 - Added UTF-8 text-document support for TXT, CSV, Markdown, and JSON.
 - PDF and text documents use browser-native inline previews; Office/OpenDocument files fall back to a download-oriented document view when the browser cannot preview them natively.
-- Added a **Take photo** action that requests the device's rear-facing camera on supported mobile browsers and sends the captured image through the normal preview/upload flow.
+- Added a mobile **Take photo** action that requests the device's rear-facing camera on supported browsers and sends the captured image through the normal preview/upload flow.
+- Added an **X** control in the top-right of the selected-file preview so a file can be removed before it is stashed.
 
 ### Security / behavior
 
@@ -29,7 +31,7 @@
 - Preview-only content is served inline with no-store caching and browser-level deterrents for dragging, context-menu saving, remote playback, Picture-in-Picture, and mobile touch callout where supported.
 - Existing metadata that predates the `allowDownload` field continues to allow downloads by default.
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed file bytes can still be recovered by a determined recipient.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, camera capture selection, settings-grid layout, and TTL select-on-focus.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, camera capture selection, removable pre-upload selections, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 
