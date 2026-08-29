@@ -27,11 +27,14 @@ let previewUrl = null;
 let selectedFile = null;
 let config = { maxFileMb: 100, maxTtlHours: 168, defaultTtlHours: 24 };
 const desktopDragQuery = matchMedia('(min-width: 621px) and (hover: hover) and (pointer: fine)');
+const mobileCameraQuery = matchMedia('(max-width: 620px)');
 
 loadConfig();
 fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
 cameraPhotoInput.addEventListener('change', () => selectFile(cameraPhotoInput.files[0]));
-takePhotoButton.addEventListener('click', () => cameraPhotoInput.click());
+takePhotoButton.addEventListener('click', () => {
+  if (mobileCameraQuery.matches) cameraPhotoInput.click();
+});
 configureDragAndDrop();
 desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
@@ -151,6 +154,19 @@ function selectFile(file) {
   renderLocalPreview(file);
 }
 
+function clearSelectedFile() {
+  selectedFile = null;
+  fileInput.value = '';
+  cameraPhotoInput.value = '';
+  if (previewUrl) {
+    URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+  }
+  localPreview.replaceChildren();
+  localPreview.hidden = true;
+  setStatus('');
+}
+
 async function loadConfig() {
   try {
     const response = await fetch('api/config');
@@ -179,6 +195,13 @@ function renderLocalPreview(file) {
   if (!file) return (localPreview.hidden = true);
   previewUrl = URL.createObjectURL(file);
   const media = mediaElement(file.type, previewUrl);
+  const removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.className = 'preview-remove';
+  removeButton.dataset.testid = 'remove-selected-file';
+  removeButton.setAttribute('aria-label', 'Remove selected file');
+  removeButton.textContent = '×';
+  removeButton.addEventListener('click', clearSelectedFile);
   const details = document.createElement('div');
   details.className = 'preview-meta';
   const name = document.createElement('strong');
@@ -186,6 +209,7 @@ function renderLocalPreview(file) {
   const size = document.createElement('span');
   size.textContent = formatBytes(file.size);
   details.append(name, size);
+  localPreview.append(removeButton);
   if (media) localPreview.append(media);
   localPreview.append(details);
   localPreview.hidden = false;
