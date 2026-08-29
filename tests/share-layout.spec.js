@@ -29,12 +29,14 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   const tags = page.getByTestId('share-tags');
   const frame = page.locator('#mediaFrame');
   const metadata = page.getByTestId('media-meta-line');
+  const fileSize = page.locator('#fileSize');
+  const expiryLine = page.locator('#expiryLine');
 
   await expect(fileName).toHaveText('layout-check.png');
   await expect(fileName).toHaveClass(/\beyebrow\b/);
   await expect(metadata.locator('#fileName')).toHaveCount(0);
-  await expect(page.locator('#metaLine')).toContainText('expires');
-  await expect(page.locator('#metaLine')).not.toContainText('layout-check.png');
+  await expect(fileSize).toHaveText(/^[\d.]+ (?:B|KB|MB|GB)$/);
+  await expect(expiryLine).toHaveText(/^Expiry: \d{4}-\d{2}-\d{2}, \d{2}:\d{2}:\d{2} [ap]$/);
 
   const [headingBox, fileNameBox, tagsBox, frameBox, metadataBox] = await Promise.all([
     heading.boundingBox(), fileName.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
@@ -49,11 +51,16 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   const styles = await page.evaluate(() => {
     const file = getComputedStyle(document.getElementById('fileName'));
     const row = getComputedStyle(document.querySelector('[data-testid="media-meta-line"]'));
+    const size = getComputedStyle(document.getElementById('fileSize'));
+    const expiry = getComputedStyle(document.getElementById('expiryLine'));
     return {
       textTransform: file.textTransform,
       letterSpacing: file.letterSpacing,
       fontWeight: file.fontWeight,
-      textAlign: row.textAlign,
+      display: row.display,
+      justifyContent: row.justifyContent,
+      sizeAlign: size.textAlign,
+      expiryAlign: expiry.textAlign,
       whiteSpace: row.whiteSpace
     };
   });
@@ -61,6 +68,9 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   expect(styles.textTransform).toBe('uppercase');
   expect(styles.letterSpacing).not.toBe('normal');
   expect(Number(styles.fontWeight)).toBeGreaterThanOrEqual(700);
-  expect(styles.textAlign).toBe('right');
+  expect(styles.display).toBe('flex');
+  expect(styles.justifyContent).toBe('space-between');
+  expect(styles.sizeAlign).toBe('left');
+  expect(styles.expiryAlign).toBe('right');
   expect(styles.whiteSpace).toBe('nowrap');
 });

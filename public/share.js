@@ -12,7 +12,8 @@ const unlockStatus = document.getElementById('unlockStatus');
 const mediaState = document.getElementById('mediaState');
 const mediaFrame = document.getElementById('mediaFrame');
 const fileName = document.getElementById('fileName');
-const metaLine = document.getElementById('metaLine');
+const fileSize = document.getElementById('fileSize');
+const expiryLine = document.getElementById('expiryLine');
 const protectedPill = document.getElementById('protectedPill');
 const previewOnlyPill = document.getElementById('previewOnlyPill');
 const shareButton = document.getElementById('shareButton');
@@ -92,7 +93,8 @@ async function showMedia() {
   unlockForm.hidden = true;
   mediaState.hidden = false;
   fileName.textContent = meta.originalName;
-  metaLine.textContent = `${formatBytes(meta.size)} · expires ${new Date(meta.expiresAt).toLocaleString()}`;
+  fileSize.textContent = formatBytes(meta.size);
+  expiryLine.textContent = `Expiry: ${formatExpiry(meta.expiresAt)}`;
   previewOnlyPill.hidden = allowDownload;
   downloadButton.hidden = !allowDownload;
   if (allowDownload) downloadButton.href = `${meta.contentUrl}?download=1`;
@@ -198,4 +200,18 @@ function formatBytes(bytes) {
   let unit = units[0];
   for (let i = 1; value >= 1024 && i < units.length; i++) { value /= 1024; unit = units[i]; }
   return `${value.toFixed(value >= 10 ? 1 : 2)} ${unit}`;
+}
+
+function formatExpiry(value) {
+  const date = new Date(value);
+  const pad = (number) => String(number).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours24 = date.getHours();
+  const hours12 = pad(hours24 % 12 || 12);
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const period = hours24 >= 12 ? 'p' : 'a';
+  return `${year}-${month}-${day}, ${hours12}:${minutes}:${seconds} ${period}`;
 }
