@@ -10,6 +10,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../apple-touch-icon.png">
   <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../share-layout.css">
   <script type="module" src="../share.js"></script>
 </head>
 <body>
@@ -65,17 +66,18 @@
 
       <div id="mediaState" hidden data-testid="media-state">
         <div class="media-heading">
-          <div>
-            <p class="eyebrow">Temporary share</p>
-            <h1 id="fileName">File</h1>
-            <p id="metaLine"></p>
-          </div>
-          <div class="pill-row">
+          <p class="eyebrow">Temporary share</p>
+          <div class="pill-row" data-testid="share-tags">
             <span class="protected-pill" id="protectedPill" hidden>Protected</span>
             <span class="protected-pill preview-only-pill" id="previewOnlyPill" hidden data-testid="preview-only-pill">Preview only</span>
           </div>
         </div>
         <div class="media-frame" id="mediaFrame"></div>
+        <div class="media-meta-line" data-testid="media-meta-line">
+          <span id="fileName">File</span>
+          <span class="media-meta-separator" aria-hidden="true">·</span>
+          <span id="metaLine"></span>
+        </div>
         <div class="button-row share-actions">
           <button class="primary-button" id="shareButton" type="button">Share</button>
           <a class="secondary-button link-button" id="downloadButton" data-testid="download-button">Download</a>
