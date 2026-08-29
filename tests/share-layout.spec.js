@@ -53,6 +53,7 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
       textTransform: file.textTransform,
       letterSpacing: file.letterSpacing,
       fontWeight: file.fontWeight,
+      textAlign: row.textAlign,
       whiteSpace: row.whiteSpace
     };
   });
@@ -60,5 +61,6 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   expect(styles.textTransform).toBe('uppercase');
   expect(styles.letterSpacing).not.toBe('normal');
   expect(Number(styles.fontWeight)).toBeGreaterThanOrEqual(700);
+  expect(styles.textAlign).toBe('right');
   expect(styles.whiteSpace).toBe('nowrap');
 });
