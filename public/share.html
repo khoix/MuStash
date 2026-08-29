@@ -66,7 +66,7 @@
 
       <div id="mediaState" hidden data-testid="media-state">
         <div class="media-heading">
-          <p class="eyebrow">Temporary share</p>
+          <p class="eyebrow" id="fileName">File</p>
           <div class="pill-row" data-testid="share-tags">
             <span class="protected-pill" id="protectedPill" hidden>Protected</span>
             <span class="protected-pill preview-only-pill" id="previewOnlyPill" hidden data-testid="preview-only-pill">Preview only</span>
@@ -74,9 +74,8 @@
         </div>
         <div class="media-frame" id="mediaFrame"></div>
         <div class="media-meta-line" data-testid="media-meta-line">
-          <span id="fileName">File</span>
-          <span class="media-meta-separator" aria-hidden="true">·</span>
-          <span id="metaLine"></span>
+          <span id="fileSize"></span>
+          <span id="expiryLine"></span>
         </div>
         <div class="button-row share-actions">
           <button class="primary-button" id="shareButton" type="button">Share</button>

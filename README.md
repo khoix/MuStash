@@ -12,7 +12,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - PDF and UTF-8 text-document previews in the browser.
 - Common document uploads including DOCX, XLSX, PPTX, ODT, ODS, and ODP; formats without a browser-native preview remain downloadable.
 - Selected files can be removed from the pre-upload preview before they are stashed.
-- Recipient previews keep status tags in the top-right and show filename, size, and expiration together below the preview.
+- Recipient previews show the filename in the top-left eyebrow, keep status tags in the top-right, and show size and expiration below the preview.
 - Native Web Share API support (iOS share sheet / Android share sheet), with clipboard fallback.
 - Optional password-derived share links (lock icon in the password field).
 - Per-share **Allow Download** control, enabled by default; preview-only shares hide the download action and reject explicit attachment requests server-side.

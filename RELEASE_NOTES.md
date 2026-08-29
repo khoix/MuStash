@@ -10,7 +10,7 @@
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
 - MuStash now presents itself as temporary **file** sharing rather than media-only sharing.
 - Removed the redundant dedicated **Take photo** action; mobile users can use the camera option already exposed by the native **Choose a file** picker.
-- Share preview status tags now stay in the top-right of the Temporary share header; filename, size, and expiration metadata appear beneath the preview on one compact line with matching typography.
+- Share preview status tags stay in the top-right; the filename now replaces the former **Temporary share** eyebrow at top-left, while size and expiration remain beneath the preview on one compact line.
 - Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, removable pre-upload selections, and recipient share layout.
 
 ### Added

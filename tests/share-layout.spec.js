@@ -17,7 +17,7 @@ async function createProtectedPreviewOnlyShare(page) {
   return page.getByTestId('share-url').inputValue();
 }
 
-test('share tags stay top-right and file metadata sits below preview on one line', async ({ page }) => {
+test('share filename uses eyebrow header while tags stay top-right and metadata stays below preview', async ({ page }) => {
   const shareUrl = await createProtectedPreviewOnlyShare(page);
   await page.goto(shareUrl);
   await expect(page.getByTestId('media-state')).toBeVisible();
@@ -25,40 +25,52 @@ test('share tags stay top-right and file metadata sits below preview on one line
   await expect(page.locator('#protectedPill')).toBeVisible();
 
   const heading = page.locator('.media-heading');
-  const eyebrow = heading.locator('.eyebrow');
+  const fileName = page.locator('#fileName');
   const tags = page.getByTestId('share-tags');
   const frame = page.locator('#mediaFrame');
   const metadata = page.getByTestId('media-meta-line');
+  const fileSize = page.locator('#fileSize');
+  const expiryLine = page.locator('#expiryLine');
 
-  const [headingBox, eyebrowBox, tagsBox, frameBox, metadataBox] = await Promise.all([
-    heading.boundingBox(), eyebrow.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
+  await expect(fileName).toHaveText('layout-check.png');
+  await expect(fileName).toHaveClass(/\beyebrow\b/);
+  await expect(metadata.locator('#fileName')).toHaveCount(0);
+  await expect(fileSize).toHaveText(/^[\d.]+ (?:B|KB|MB|GB)$/);
+  await expect(expiryLine).toHaveText(/^Expiry: \d{4}-\d{2}-\d{2}, (?:[1-9]|1[0-2]):\d{2}[ap]$/);
+
+  const [headingBox, fileNameBox, tagsBox, frameBox, metadataBox] = await Promise.all([
+    heading.boundingBox(), fileName.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
   ]);
-  expect(headingBox && eyebrowBox && tagsBox && frameBox && metadataBox).toBeTruthy();
-  expect(tagsBox.x).toBeGreaterThan(eyebrowBox.x);
+  expect(headingBox && fileNameBox && tagsBox && frameBox && metadataBox).toBeTruthy();
+  expect(tagsBox.x).toBeGreaterThan(fileNameBox.x);
   expect(tagsBox.x + tagsBox.width).toBeLessThanOrEqual(headingBox.x + headingBox.width + 1);
   expect(tagsBox.y).toBeLessThan(frameBox.y);
+  expect(fileNameBox.y).toBeLessThan(frameBox.y);
   expect(metadataBox.y).toBeGreaterThanOrEqual(frameBox.y + frameBox.height - 1);
-
-  await expect(page.locator('#fileName')).toHaveText('layout-check.png');
-  await expect(page.locator('#metaLine')).toContainText('expires');
 
   const styles = await page.evaluate(() => {
     const file = getComputedStyle(document.getElementById('fileName'));
-    const meta = getComputedStyle(document.getElementById('metaLine'));
     const row = getComputedStyle(document.querySelector('[data-testid="media-meta-line"]'));
+    const size = getComputedStyle(document.getElementById('fileSize'));
+    const expiry = getComputedStyle(document.getElementById('expiryLine'));
     return {
-      fileSize: file.fontSize,
-      metaSize: meta.fontSize,
-      fileWeight: file.fontWeight,
-      metaWeight: meta.fontWeight,
-      fileColor: file.color,
-      metaColor: meta.color,
+      textTransform: file.textTransform,
+      letterSpacing: file.letterSpacing,
+      fontWeight: file.fontWeight,
+      display: row.display,
+      justifyContent: row.justifyContent,
+      sizeAlign: size.textAlign,
+      expiryAlign: expiry.textAlign,
       whiteSpace: row.whiteSpace
     };
   });
 
-  expect(styles.fileSize).toBe(styles.metaSize);
-  expect(styles.fileWeight).toBe(styles.metaWeight);
-  expect(styles.fileColor).toBe(styles.metaColor);
+  expect(styles.textTransform).toBe('uppercase');
+  expect(styles.letterSpacing).not.toBe('normal');
+  expect(Number(styles.fontWeight)).toBeGreaterThanOrEqual(700);
+  expect(styles.display).toBe('flex');
+  expect(styles.justifyContent).toBe('space-between');
+  expect(styles.sizeAlign).toBe('left');
+  expect(styles.expiryAlign).toBe('right');
   expect(styles.whiteSpace).toBe('nowrap');
 });
