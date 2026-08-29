@@ -10,7 +10,8 @@
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
 - MuStash now presents itself as temporary **file** sharing rather than media-only sharing.
 - Removed the redundant dedicated **Take photo** action; mobile users can use the camera option already exposed by the native **Choose a file** picker.
-- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, and removable pre-upload selections.
+- Share preview status tags now stay in the top-right of the Temporary share header; filename, size, and expiration metadata appear beneath the preview on one compact line with matching typography.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, removable pre-upload selections, and recipient share layout.
 
 ### Added
 
@@ -30,7 +31,7 @@
 - Preview-only content is served inline with no-store caching and browser-level deterrents for dragging, context-menu saving, remote playback, Picture-in-Picture, and mobile touch callout where supported.
 - Existing metadata that predates the `allowDownload` field continues to allow downloads by default.
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed file bytes can still be recovered by a determined recipient.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, removable pre-upload selections, settings-grid layout, and TTL select-on-focus.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, removable pre-upload selections, share layout, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 

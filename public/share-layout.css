@@ -1,0 +1,81 @@
+#mediaState {
+  position: relative;
+}
+
+.media-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  margin-bottom: 18px;
+}
+
+.media-heading .eyebrow {
+  margin: 0;
+  padding-top: 7px;
+}
+
+.pill-row {
+  margin-left: auto;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.media-meta-line {
+  display: flex;
+  align-items: baseline;
+  gap: .42em;
+  min-width: 0;
+  margin: 10px 2px 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+#fileName {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#metaLine {
+  flex: none;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.media-meta-separator {
+  flex: none;
+}
+
+@media (max-width: 620px) {
+  .media-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .pill-row {
+    max-width: 68%;
+    justify-content: flex-end;
+  }
+
+  .protected-pill {
+    justify-self: auto;
+  }
+
+  .media-meta-line {
+    font-size: .82rem;
+    gap: .34em;
+  }
+}
