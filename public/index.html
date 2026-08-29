@@ -10,7 +10,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="camera.css">
+  <link rel="stylesheet" href="preview-controls.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -54,11 +54,6 @@
           <span id="dropHint" data-testid="drop-hint" hidden>or drop it here</span>
           <small id="limitText">Media, PDF, Office/OpenDocument, and UTF-8 text files</small>
         </label>
-
-        <div class="camera-actions">
-          <button class="secondary-button" id="takePhotoButton" type="button" data-testid="take-photo">Take photo</button>
-        </div>
-        <input id="cameraPhotoInput" type="file" accept="image/*" capture="environment" hidden aria-hidden="true" tabindex="-1" data-testid="camera-photo-input">
 
         <div class="preview" id="localPreview" hidden aria-live="polite"></div>
 
