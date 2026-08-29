@@ -36,7 +36,7 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   await expect(fileName).toHaveClass(/\beyebrow\b/);
   await expect(metadata.locator('#fileName')).toHaveCount(0);
   await expect(fileSize).toHaveText(/^[\d.]+ (?:B|KB|MB|GB)$/);
-  await expect(expiryLine).toHaveText(/^Expiry: \d{4}-\d{2}-\d{2}, (?:[1-9]|1[0-2]):\d{2}:\d{2}[ap]$/);
+  await expect(expiryLine).toHaveText(/^Expiry: \d{4}-\d{2}-\d{2}, (?:[1-9]|1[0-2]):\d{2}[ap]$/);
 
   const [headingBox, fileNameBox, tagsBox, frameBox, metadataBox] = await Promise.all([
     heading.boundingBox(), fileName.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
