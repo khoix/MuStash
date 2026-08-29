@@ -12,8 +12,12 @@
 }
 
 .media-heading .eyebrow {
+  min-width: 0;
   margin: 0;
   padding-top: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pill-row {
@@ -23,9 +27,7 @@
 }
 
 .media-meta-line {
-  display: flex;
-  align-items: baseline;
-  gap: .42em;
+  display: block;
   min-width: 0;
   margin: 10px 2px 0;
   overflow: hidden;
@@ -36,25 +38,15 @@
   white-space: nowrap;
 }
 
-#fileName {
+#metaLine {
+  display: block;
   min-width: 0;
+  margin: 0;
   overflow: hidden;
   color: inherit;
   font: inherit;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-#metaLine {
-  flex: none;
-  margin: 0;
-  color: inherit;
-  font: inherit;
-  white-space: nowrap;
-}
-
-.media-meta-separator {
-  flex: none;
 }
 
 @media (max-width: 620px) {
@@ -76,6 +68,5 @@
 
   .media-meta-line {
     font-size: .82rem;
-    gap: .34em;
   }
 }
