@@ -5,8 +5,6 @@ initTheme();
 
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
-const cameraPhotoInput = document.getElementById('cameraPhotoInput');
-const takePhotoButton = document.getElementById('takePhotoButton');
 const dropzone = document.getElementById('dropzone');
 const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
@@ -27,14 +25,9 @@ let previewUrl = null;
 let selectedFile = null;
 let config = { maxFileMb: 100, maxTtlHours: 168, defaultTtlHours: 24 };
 const desktopDragQuery = matchMedia('(min-width: 621px) and (hover: hover) and (pointer: fine)');
-const mobileCameraQuery = matchMedia('(max-width: 620px)');
 
 loadConfig();
 fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
-cameraPhotoInput.addEventListener('change', () => selectFile(cameraPhotoInput.files[0]));
-takePhotoButton.addEventListener('click', () => {
-  if (mobileCameraQuery.matches) cameraPhotoInput.click();
-});
 configureDragAndDrop();
 desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
@@ -48,7 +41,7 @@ form.addEventListener('submit', async (event) => {
   setStatus('');
   resultCard.hidden = true;
   const file = selectedFile;
-  if (!file) return setStatus('Choose or capture a file first.', true);
+  if (!file) return setStatus('Choose a file first.', true);
   if (file.size > config.maxFileMb * 1024 * 1024) return setStatus(`That file is over the ${config.maxFileMb} MB limit.`, true);
 
   const ttlHours = Number(ttlInput.value);
@@ -157,7 +150,6 @@ function selectFile(file) {
 function clearSelectedFile() {
   selectedFile = null;
   fileInput.value = '';
-  cameraPhotoInput.value = '';
   if (previewUrl) {
     URL.revokeObjectURL(previewUrl);
     previewUrl = null;
