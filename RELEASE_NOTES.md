@@ -9,7 +9,7 @@
 - Allow Download copy is a single label, vertically centered to the TTL input control.
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
 - MuStash now presents itself as temporary **file** sharing rather than media-only sharing.
-- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, and document/text uploads.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, and camera-photo selection.
 
 ### Added
 
@@ -18,17 +18,18 @@
 - Added common document support: PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP.
 - Added UTF-8 text-document support for TXT, CSV, Markdown, and JSON.
 - PDF and text documents use browser-native inline previews; Office/OpenDocument files fall back to a download-oriented document view when the browser cannot preview them natively.
+- Added a **Take photo** action that requests the device's rear-facing camera on supported mobile browsers and sends the captured image through the normal preview/upload flow.
 
 ### Security / behavior
 
-- Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames.
+- Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames, including files captured from the camera.
 - Plain-text formats are accepted only for a small extension allowlist and only after streaming UTF-8/control-character validation; they are served with an explicit non-executable MIME type and `X-Content-Type-Options: nosniff`.
 - HTML and SVG remain unsupported as upload formats.
 - Shares created with **Allow Download** disabled reject explicit `?download=1` attachment requests with HTTP `403`.
 - Preview-only content is served inline with no-store caching and browser-level deterrents for dragging, context-menu saving, remote playback, Picture-in-Picture, and mobile touch callout where supported.
 - Existing metadata that predates the `allowDownload` field continues to allow downloads by default.
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed file bytes can still be recovered by a determined recipient.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, settings-grid layout, and TTL select-on-focus.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, camera capture selection, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 
@@ -44,7 +45,7 @@
 
 - Helmet no longer forces HTTPS upgrades or HSTS, so the UI works over plain HTTP (LAN / reverse proxy).
 - Unlock cookie paths and `contentUrl` values respect Express `req.baseUrl` when mounted under a prefix.
-- If `MUSTASH_SECRET` is unset, a persistent secret is written to `DATA_DIR/.mustash-secret` instead of failing in production.
+- If `MUSTASH_SECRET` is unset, a persistent secret is written under `DATA_DIR/.mustash-secret` instead of failing in production.
 - Expanded Playwright coverage for TTL steppers and the password lock icon.
 
 ## 0.1.1 — 2026-08-24

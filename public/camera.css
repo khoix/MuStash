@@ -1,0 +1,19 @@
+.camera-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.camera-actions span {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+@media (max-width: 620px) {
+  .camera-actions {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+}
