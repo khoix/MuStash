@@ -60,10 +60,8 @@
     padding: 11px 12px 10px;
   }
 
-  /* Keep status pills independent of the title/UUID flow so they stay at the
-     actual top-right of the card instead of drifting down beside the UUID. */
+  /* Reserve room in the title row for the card-anchored status pills. */
   .stash-head {
-    position: relative;
     gap: 7px;
     padding-right: min(44%, 150px);
     min-height: 38px;
@@ -86,10 +84,13 @@
     line-height: 1.25;
   }
 
+  /* Anchor status pills to the stash card itself, using the exact same top
+     and right inset as the card content. They no longer depend on the header
+     container's geometry. */
   .admin-pill-row {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 11px;
+    right: 12px;
     align-self: auto;
     justify-content: flex-end;
     max-width: 44%;
