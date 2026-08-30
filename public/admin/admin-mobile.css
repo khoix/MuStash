@@ -84,12 +84,10 @@
     line-height: 1.25;
   }
 
-  /* Anchor status pills to the stash card itself, using the exact same top
-     and right inset as the card content. They no longer depend on the header
-     container's geometry. */
+  /* Match the pill's visual top edge to the stash-name row. */
   .admin-pill-row {
     position: absolute;
-    top: 11px;
+    top: 6px;
     right: 12px;
     align-self: auto;
     justify-content: flex-end;
