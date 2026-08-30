@@ -5,6 +5,7 @@ initTheme();
 
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
+const stashNameInput = document.getElementById('stashName');
 const dropzone = document.getElementById('dropzone');
 const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
@@ -21,13 +22,24 @@ const copyButton = document.getElementById('copyButton');
 const openButton = document.getElementById('openButton');
 const limitText = document.getElementById('limitText');
 
-let previewUrl = null;
-let selectedFile = null;
-let config = { maxFileMb: 100, maxTtlHours: 168, defaultTtlHours: 24 };
+let selectedFiles = [];
+let previewUrls = [];
+let config = {
+  maxFileMb: 100,
+  maxStashMb: 100,
+  maxFiles: 25,
+  maxTtlHours: 168,
+  defaultTtlHours: 24
+};
 const desktopDragQuery = matchMedia('(min-width: 621px) and (hover: hover) and (pointer: fine)');
 
 loadConfig();
-fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
+fileInput.addEventListener('change', () => {
+  addFiles(Array.from(fileInput.files || []));
+  // The FileList cannot be safely rewritten after per-file removals. The app's
+  // selectedFiles state is authoritative, so clear the native input after capture.
+  fileInput.value = '';
+});
 configureDragAndDrop();
 desktopDragQuery.addEventListener?.('change', configureDragAndDrop);
 document.querySelectorAll('.number-steppers .stepper').forEach((button) => {
@@ -40,9 +52,18 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('');
   resultCard.hidden = true;
-  const file = selectedFile;
-  if (!file) return setStatus('Choose a file first.', true);
-  if (file.size > config.maxFileMb * 1024 * 1024) return setStatus(`That file is over the ${config.maxFileMb} MB limit.`, true);
+  if (selectedFiles.length === 0) return setStatus('Choose a file first.', true);
+
+  const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+  const maxStashBytes = config.maxStashMb * 1024 * 1024;
+  if (totalSize > maxStashBytes) {
+    return setStatus(`This stash is over the ${config.maxStashMb} MB total limit.`, true);
+  }
+  if (selectedFiles.length > config.maxFiles) {
+    return setStatus(`Choose no more than ${config.maxFiles} files.`, true);
+  }
+  const oversized = selectedFiles.find((file) => file.size > config.maxFileMb * 1024 * 1024);
+  if (oversized) return setStatus(`${oversized.name} is over the ${config.maxFileMb} MB per-file limit.`, true);
 
   const ttlHours = Number(ttlInput.value);
   if (!Number.isFinite(ttlHours) || ttlHours < 0.25 || ttlHours > config.maxTtlHours) {
@@ -63,7 +84,9 @@ form.addEventListener('submit', async (event) => {
     }
 
     const data = new FormData();
-    data.append('file', file);
+    for (const file of selectedFiles) data.append('file', file, file.name);
+    const stashName = stashNameInput.value.trim();
+    if (stashName) data.append('stashName', stashName);
     data.append('ttlHours', String(ttlHours));
     data.append('allowDownload', allowDownloadInput.checked ? '1' : '0');
     if (accessKey) {
@@ -100,8 +123,9 @@ copyButton.addEventListener('click', async () => {
 
 shareButton.addEventListener('click', async () => {
   const url = shareUrlInput.value;
+  const title = stashNameInput.value.trim() || 'MuStash share';
   if (navigator.share) {
-    try { await navigator.share({ title: 'MuStash share', url }); } catch (error) { if (error.name !== 'AbortError') setStatus('Could not open the share sheet.', true); }
+    try { await navigator.share({ title, url }); } catch (error) { if (error.name !== 'AbortError') setStatus('Could not open the share sheet.', true); }
   } else {
     await copyText(url);
     setStatus('Share URL copied to your clipboard.');
@@ -136,37 +160,122 @@ function handleDragEvent(event) {
 }
 
 function handleDrop(event) {
-  const [file] = event.dataTransfer?.files || [];
-  if (!file) return;
-  selectFile(file);
+  const files = Array.from(event.dataTransfer?.files || []);
+  if (files.length === 0) return;
+  addFiles(files);
 }
 
-function selectFile(file) {
-  if (!file) return;
-  selectedFile = file;
-  renderLocalPreview(file);
-}
-
-function clearSelectedFile() {
-  selectedFile = null;
-  fileInput.value = '';
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
+function addFiles(files) {
+  if (files.length === 0) return;
+  const known = new Set(selectedFiles.map(fileIdentity));
+  const additions = files.filter((file) => !known.has(fileIdentity(file)));
+  if (selectedFiles.length + additions.length > config.maxFiles) {
+    return setStatus(`Choose no more than ${config.maxFiles} files.`, true);
   }
+  selectedFiles = [...selectedFiles, ...additions];
+  renderLocalPreview();
+  updateSelectionStatus();
+}
+
+function fileIdentity(file) {
+  return `${file.name}\u0000${file.size}\u0000${file.lastModified}`;
+}
+
+function removeSelectedFile(index) {
+  selectedFiles.splice(index, 1);
+  renderLocalPreview();
+  updateSelectionStatus();
+}
+
+function clearPreviewUrls() {
+  for (const url of previewUrls) URL.revokeObjectURL(url);
+  previewUrls = [];
+}
+
+function renderLocalPreview() {
+  clearPreviewUrls();
   localPreview.replaceChildren();
-  localPreview.hidden = true;
-  setStatus('');
+  if (selectedFiles.length === 0) {
+    localPreview.hidden = true;
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'selected-file-list';
+  selectedFiles.forEach((file, index) => {
+    const item = document.createElement('div');
+    item.className = 'selected-file-item';
+    item.dataset.testid = 'selected-file-item';
+
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      previewUrls.push(url);
+      const image = document.createElement('img');
+      image.src = url;
+      image.alt = 'Selected media preview';
+      image.className = 'selected-file-thumb';
+      item.append(image);
+    } else {
+      const mark = document.createElement('div');
+      mark.className = 'selected-file-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = file.type.startsWith('video/') ? '▶' : file.type.startsWith('audio/') ? '♪' : '≡';
+      item.append(mark);
+    }
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'preview-remove';
+    removeButton.dataset.testid = 'remove-selected-file';
+    removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+    removeButton.textContent = '×';
+    removeButton.addEventListener('click', () => removeSelectedFile(index));
+
+    const details = document.createElement('div');
+    details.className = 'preview-meta';
+    const name = document.createElement('strong');
+    name.textContent = file.name;
+    const size = document.createElement('span');
+    size.textContent = formatBytes(file.size);
+    details.append(name, size);
+
+    item.append(removeButton, details);
+    list.append(item);
+  });
+
+  const summary = document.createElement('div');
+  summary.className = 'selection-summary';
+  summary.dataset.testid = 'selection-summary';
+  summary.textContent = `${selectedFiles.length} ${selectedFiles.length === 1 ? 'file' : 'files'} · ${formatBytes(selectedFiles.reduce((sum, file) => sum + file.size, 0))}`;
+
+  localPreview.append(list, summary);
+  localPreview.hidden = false;
+}
+
+function updateSelectionStatus() {
+  if (selectedFiles.length === 0) {
+    setStatus('');
+    stashButton.disabled = false;
+    return;
+  }
+  const total = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+  const tooLarge = total > config.maxStashMb * 1024 * 1024;
+  const oversized = selectedFiles.find((file) => file.size > config.maxFileMb * 1024 * 1024);
+  if (tooLarge) setStatus(`This stash is over the ${config.maxStashMb} MB total limit.`, true);
+  else if (oversized) setStatus(`${oversized.name} is over the ${config.maxFileMb} MB per-file limit.`, true);
+  else setStatus('');
+  stashButton.disabled = tooLarge || Boolean(oversized);
 }
 
 async function loadConfig() {
   try {
     const response = await fetch('api/config');
     if (!response.ok) return;
-    config = await response.json();
+    config = { ...config, ...(await response.json()) };
     ttlInput.max = String(config.maxTtlHours);
     ttlInput.value = String(config.defaultTtlHours);
-    limitText.textContent = `Media and documents · up to ${config.maxFileMb} MB`;
+    limitText.textContent = `Up to ${config.maxFiles} files · ${config.maxStashMb} MB total`;
+    updateSelectionStatus();
   } catch {}
 }
 
@@ -179,49 +288,6 @@ function stepTtl(direction) {
   const next = Math.min(max, Math.max(min, Math.round((base + direction * step) * 100) / 100));
   ttlInput.value = String(next);
   ttlInput.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-function renderLocalPreview(file) {
-  if (previewUrl) URL.revokeObjectURL(previewUrl);
-  localPreview.replaceChildren();
-  if (!file) return (localPreview.hidden = true);
-  previewUrl = URL.createObjectURL(file);
-  const media = mediaElement(file.type, previewUrl);
-  const removeButton = document.createElement('button');
-  removeButton.type = 'button';
-  removeButton.className = 'preview-remove';
-  removeButton.dataset.testid = 'remove-selected-file';
-  removeButton.setAttribute('aria-label', 'Remove selected file');
-  removeButton.textContent = '×';
-  removeButton.addEventListener('click', clearSelectedFile);
-  const details = document.createElement('div');
-  details.className = 'preview-meta';
-  const name = document.createElement('strong');
-  name.textContent = file.name;
-  const size = document.createElement('span');
-  size.textContent = formatBytes(file.size);
-  details.append(name, size);
-  localPreview.append(removeButton);
-  if (media) localPreview.append(media);
-  localPreview.append(details);
-  localPreview.hidden = false;
-}
-
-function mediaElement(type, src) {
-  let element;
-  if (type.startsWith('image/')) {
-    element = document.createElement('img');
-    element.alt = 'Selected media preview';
-  } else if (type.startsWith('video/')) {
-    element = document.createElement('video');
-    element.controls = true;
-    element.preload = 'metadata';
-  } else if (type.startsWith('audio/')) {
-    element = document.createElement('audio');
-    element.controls = true;
-  } else return null;
-  element.src = src;
-  return element;
 }
 
 function setStatus(message, error = false) {
@@ -240,6 +306,6 @@ function formatBytes(bytes) {
   const units = ['KB', 'MB', 'GB'];
   let value = bytes / 1024;
   let unit = units[0];
-  for (let i = 1; value >= 1024 && i < units.length; i++) { value /= 1024; unit = units[i]; }
+  for (let i = 1; value >= 1024 && i < units.length; i += 1) { value /= 1024; unit = units[i]; }
   return `${value.toFixed(value >= 10 ? 1 : 2)} ${unit}`;
 }

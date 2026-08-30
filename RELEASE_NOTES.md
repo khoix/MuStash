@@ -10,8 +10,10 @@
 - Focusing or tapping the TTL hours field selects its current value for quick replacement.
 - MuStash now presents itself as temporary **file** sharing rather than media-only sharing.
 - Removed the redundant dedicated **Take photo** action; mobile users can use the camera option already exposed by the native **Choose a file** picker.
-- Share preview status tags stay in the top-right; the filename now replaces the former **Temporary share** eyebrow at top-left, while size and expiration remain beneath the preview on one compact line.
-- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, removable pre-upload selections, and recipient share layout.
+- Share preview status tags stay in the top-right; the stash name now occupies the former filename/Temporary share eyebrow at top-left, while aggregate file metadata and expiration remain beneath the preview.
+- Upload selection now supports multiple files, with independent remove controls and a live aggregate count/size summary.
+- The default aggregate stash limit is the same 100 MB value as the existing per-file limit, and a stash is rejected if its combined file bytes exceed the configured cap.
+- Expanded Playwright coverage for the settings-grid layout (desktop and mobile), TTL select-on-focus behavior, document/text uploads, removable pre-upload selections, recipient share layout, named multi-file stashes, selective downloads, streamed ZIPs, and mobile ZIP-cache reuse.
 
 ### Added
 
@@ -20,18 +22,28 @@
 - Added common document support: PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP.
 - Added UTF-8 text-document support for TXT, CSV, Markdown, and JSON.
 - PDF and text documents use browser-native inline previews; Office/OpenDocument files fall back to a download-oriented document view when the browser cannot preview them natively.
-- Added an **X** control in the top-right of the selected-file preview so a file can be removed before it is stashed.
+- Added an **X** control to each selected-file item so files can be removed before the stash is created.
+- Added optional stash naming. An unnamed single-file stash falls back to its filename; unnamed multi-file stashes use a file-count label.
+- Added recipient-side file selection for multi-file stashes so each contained file can be previewed independently.
+- Added selective downloads: one selected file downloads directly; two or more selected files are streamed as a compressed `mustash-YYYYMMDDHHMM.zip`.
+- Added opportunistic mobile CacheStorage reuse for generated ZIP responses for up to 30 minutes, never beyond the stash expiry.
+- Added `MAX_STASH_MB` and `MAX_FILES_PER_STASH` configuration controls.
 
 ### Security / behavior
 
-- Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames.
+- Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames, independently for every file in a stash.
 - Plain-text formats are accepted only for a small extension allowlist and only after streaming UTF-8/control-character validation; they are served with an explicit non-executable MIME type and `X-Content-Type-Options: nosniff`.
 - HTML and SVG remain unsupported as upload formats.
-- Shares created with **Allow Download** disabled reject explicit `?download=1` attachment requests with HTTP `403`.
+- Multi-file uploads are all-or-nothing: validation failure removes temporary/partially moved files rather than creating a partial stash.
+- Server-side file count, per-file size, and aggregate stash size are all bounded. Clearly oversized multipart requests with a known Content-Length are rejected before upload parsing, and aggregate file bytes are checked again before commit.
+- Multi-file ZIP archives use streaming DEFLATE and are never persisted as derived files on the server.
+- Mobile ZIP caching is best-effort only. CacheStorage quota/eviction failures do not affect downloads, and cached entries expire after 30 minutes or at stash expiry, whichever comes first.
+- Shares created with **Allow Download** disabled reject explicit `?download=1` attachment requests and ZIP requests with HTTP `403`.
 - Preview-only content is served inline with no-store caching and browser-level deterrents for dragging, context-menu saving, remote playback, Picture-in-Picture, and mobile touch callout where supported.
+- Existing single-file metadata remains readable through an in-memory compatibility normalization path.
 - Existing metadata that predates the `allowDownload` field continues to allow downloads by default.
 - Screenshot and screen-recording prevention is intentionally not claimed: ordinary web pages cannot reliably block operating-system capture, and previewed file bytes can still be recovered by a determined recipient.
-- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, removable pre-upload selections, share layout, settings-grid layout, and TTL select-on-focus.
+- Expanded Playwright desktop/mobile E2E coverage for Allow Download defaults, unrestricted downloads, preview-only rendering, server-side download rejection, client-side preview deterrents, document/text acceptance, removable pre-upload selections, multi-file upload/download behavior, share layout, settings-grid layout, and TTL select-on-focus.
 
 ## 0.1.2 — 2026-08-25
 
