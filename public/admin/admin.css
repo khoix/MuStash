@@ -24,9 +24,22 @@
 .admin-toolbar { display: flex; align-items: center; gap: 14px; margin: 16px 0 6px; }
 .admin-search { flex: 1; }
 .admin-search input { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-strong); color: var(--text); padding: 0 14px; }
+.admin-select-visible { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.admin-select-visible input, .stash-select input { width: 18px; height: 18px; accent-color: var(--accent); }
+.batch-bar { display: grid; gap: 10px; margin: 10px 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+.batch-selection { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.batch-selection strong { font-size: .84rem; }
+.text-button { border: 0; background: transparent; color: var(--accent); padding: 4px 0; font: inherit; font-size: .78rem; font-weight: 750; cursor: pointer; }
+.batch-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.batch-actions .secondary-button { width: auto; min-height: 40px; }
+.batch-expiry { display: flex; align-items: center; gap: 8px; }
+.batch-expiry input { min-height: 40px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-strong); color: var(--text); padding: 0 10px; }
 .stash-list { display: grid; gap: 14px; }
-.stash-card { border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); padding: 18px; }
+.stash-card { position: relative; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); padding: 18px; }
+.stash-card.selected { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), var(--shadow); }
 .stash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.stash-head-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.stash-select { display: flex; align-items: center; justify-content: center; padding-top: 2px; }
 .stash-head-copy { min-width: 0; }
 .stash-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.2rem; }
 .stash-id { margin: 4px 0 0; color: var(--muted); font: 500 .72rem ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -56,8 +69,14 @@
   .admin-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stash-edit { grid-template-columns: 1fr; }
   .stash-head { flex-direction: column; }
-  .admin-pill-row { justify-content: flex-start; }
+  .admin-pill-row { justify-content: flex-start; padding-left: 30px; }
   .admin-toolbar { align-items: stretch; flex-direction: column; }
+  .admin-select-visible { min-height: 36px; }
   .admin-top-actions { width: 100%; }
   .admin-top-actions button { flex: 1; }
+  .batch-actions { align-items: stretch; flex-direction: column; }
+  .batch-actions .secondary-button { width: 100%; }
+  .batch-expiry { width: 100%; }
+  .batch-expiry label { flex: 1; }
+  .batch-expiry input { width: 100%; }
 }

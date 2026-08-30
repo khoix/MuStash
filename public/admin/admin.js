@@ -8,6 +8,7 @@ const dashboard = document.getElementById('dashboard');
 const refreshButton = document.getElementById('refreshButton');
 const logoutButton = document.getElementById('logoutButton');
 const searchInput = document.getElementById('searchInput');
+const selectVisible = document.getElementById('selectVisible');
 const stashList = document.getElementById('stashList');
 const emptyState = document.getElementById('emptyState');
 const adminStatus = document.getElementById('adminStatus');
@@ -16,9 +17,19 @@ const totalSize = document.getElementById('totalSize');
 const protectedCount = document.getElementById('protectedCount');
 const previewOnlyCount = document.getElementById('previewOnlyCount');
 const visibleCount = document.getElementById('visibleCount');
+const batchBar = document.getElementById('batchBar');
+const selectedCount = document.getElementById('selectedCount');
+const clearSelection = document.getElementById('clearSelection');
+const batchAllowDownloads = document.getElementById('batchAllowDownloads');
+const batchPreviewOnly = document.getElementById('batchPreviewOnly');
+const batchExpiry = document.getElementById('batchExpiry');
+const batchSetExpiry = document.getElementById('batchSetExpiry');
+const batchDelete = document.getElementById('batchDelete');
 
 let stashes = [];
 let summary = { count: 0, totalSize: 0, protectedCount: 0, previewOnlyCount: 0 };
+let visibleIds = [];
+const selectedIds = new Set();
 
 init();
 
@@ -45,9 +56,22 @@ loginForm.addEventListener('submit', async (event) => {
 
 refreshButton.addEventListener('click', loadStashes);
 searchInput.addEventListener('input', renderStashes);
+selectVisible.addEventListener('change', () => setVisibleSelection(selectVisible.checked));
+clearSelection.addEventListener('click', clearSelectedStashes);
+batchAllowDownloads.addEventListener('click', () => runBatchAction('set-download', { allowDownload: true }));
+batchPreviewOnly.addEventListener('click', () => runBatchAction('set-download', { allowDownload: false }));
+batchSetExpiry.addEventListener('click', () => {
+  const expiry = new Date(batchExpiry.value);
+  if (!batchExpiry.value || Number.isNaN(expiry.getTime())) {
+    return setAdminStatus('Choose a valid future expiry for the selected stashes.', true);
+  }
+  runBatchAction('set-expiry', { expiresAt: expiry.toISOString() });
+});
+batchDelete.addEventListener('click', () => runBatchAction('delete'));
 logoutButton.addEventListener('click', async () => {
   await fetch(`${API}/logout`, { method: 'POST' }).catch(() => {});
   stashes = [];
+  selectedIds.clear();
   renderStashes();
   showLogin();
 });
@@ -115,6 +139,8 @@ async function loadStashes() {
     if (!response.ok) throw new Error(payload.error || 'Could not load stashes.');
     stashes = Array.isArray(payload.stashes) ? payload.stashes : [];
     summary = payload.summary || summary;
+    const activeIds = new Set(stashes.map((stash) => stash.id));
+    for (const id of selectedIds) if (!activeIds.has(id)) selectedIds.delete(id);
     updateSummary();
     renderStashes();
     setAdminStatus('');
@@ -132,28 +158,51 @@ function updateSummary() {
   previewOnlyCount.textContent = String(summary.previewOnlyCount || 0);
 }
 
-function renderStashes() {
+function filteredStashes() {
   const query = searchInput.value.trim().toLowerCase();
-  const filtered = stashes.filter((stash) => {
+  return stashes.filter((stash) => {
     if (!query) return true;
     return stash.name.toLowerCase().includes(query)
       || stash.id.toLowerCase().includes(query)
       || stash.files.some((file) => file.originalName.toLowerCase().includes(query));
   });
+}
 
+function renderStashes() {
+  const filtered = filteredStashes();
+  visibleIds = filtered.map((stash) => stash.id);
   stashList.replaceChildren(...filtered.map(renderStashCard));
   emptyState.hidden = filtered.length !== 0;
+  const query = searchInput.value.trim();
   visibleCount.textContent = query ? `${filtered.length} of ${stashes.length}` : `${stashes.length} total`;
+  syncSelectionUi();
 }
 
 function renderStashCard(stash) {
   const card = document.createElement('article');
-  card.className = 'stash-card';
+  card.className = `stash-card${selectedIds.has(stash.id) ? ' selected' : ''}`;
   card.dataset.stashId = stash.id;
   card.dataset.testid = 'admin-stash-card';
 
   const head = document.createElement('div');
   head.className = 'stash-head';
+  const headMain = document.createElement('div');
+  headMain.className = 'stash-head-main';
+  const selectLabel = document.createElement('label');
+  selectLabel.className = 'stash-select';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = selectedIds.has(stash.id);
+  checkbox.dataset.testid = 'admin-select-stash';
+  checkbox.setAttribute('aria-label', `Select ${stash.name}`);
+  checkbox.addEventListener('change', () => {
+    if (checkbox.checked) selectedIds.add(stash.id);
+    else selectedIds.delete(stash.id);
+    card.classList.toggle('selected', checkbox.checked);
+    syncSelectionUi();
+  });
+  selectLabel.append(checkbox);
+
   const headCopy = document.createElement('div');
   headCopy.className = 'stash-head-copy';
   const title = document.createElement('h2');
@@ -163,12 +212,13 @@ function renderStashCard(stash) {
   idLine.className = 'stash-id';
   idLine.textContent = stash.id;
   headCopy.append(title, idLine);
+  headMain.append(selectLabel, headCopy);
 
   const pills = document.createElement('div');
   pills.className = 'admin-pill-row';
   if (stash.protected) pills.append(makePill('Protected', 'protected'));
   pills.append(makePill(stash.allowDownload ? 'Downloads on' : 'Preview only', stash.allowDownload ? '' : 'preview'));
-  head.append(headCopy, pills);
+  head.append(headMain, pills);
 
   const meta = document.createElement('div');
   meta.className = 'stash-meta';
@@ -238,6 +288,101 @@ function renderStashCard(stash) {
   return card;
 }
 
+function setVisibleSelection(shouldSelect) {
+  for (const id of visibleIds) {
+    if (shouldSelect) selectedIds.add(id);
+    else selectedIds.delete(id);
+  }
+  for (const card of stashList.querySelectorAll('[data-stash-id]')) {
+    const selected = selectedIds.has(card.dataset.stashId);
+    card.classList.toggle('selected', selected);
+    const checkbox = card.querySelector('[data-testid="admin-select-stash"]');
+    if (checkbox) checkbox.checked = selected;
+  }
+  syncSelectionUi();
+}
+
+function clearSelectedStashes() {
+  selectedIds.clear();
+  for (const card of stashList.querySelectorAll('[data-stash-id]')) {
+    card.classList.remove('selected');
+    const checkbox = card.querySelector('[data-testid="admin-select-stash"]');
+    if (checkbox) checkbox.checked = false;
+  }
+  syncSelectionUi();
+}
+
+function syncSelectionUi() {
+  const selectedVisible = visibleIds.filter((id) => selectedIds.has(id)).length;
+  selectVisible.disabled = visibleIds.length === 0;
+  selectVisible.checked = visibleIds.length > 0 && selectedVisible === visibleIds.length;
+  selectVisible.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+  batchBar.hidden = selectedIds.size === 0;
+  selectedCount.textContent = `${selectedIds.size} selected`;
+}
+
+async function runBatchAction(action, extra = {}) {
+  const ids = [...selectedIds];
+  if (ids.length === 0) return;
+
+  if (action === 'delete' && !window.confirm(`Delete ${ids.length} selected ${ids.length === 1 ? 'stash' : 'stashes'} and all of their files now?`)) {
+    return;
+  }
+
+  setBatchDisabled(true);
+  setAdminStatus(action === 'delete' ? 'Deleting selected stashes…' : 'Updating selected stashes…');
+  let processed = 0;
+  const failures = [];
+
+  try {
+    for (const id of ids) {
+      const url = `${API}/stashes/${encodeURIComponent(id)}`;
+      let response;
+      if (action === 'delete') {
+        response = await fetch(url, { method: 'DELETE' });
+      } else {
+        const body = action === 'set-download'
+          ? { allowDownload: extra.allowDownload }
+          : { expiresAt: extra.expiresAt };
+        response = await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+      }
+
+      if (response.ok) {
+        processed += 1;
+        continue;
+      }
+
+      const payload = await response.json().catch(() => ({}));
+      failures.push(payload.error || `Could not update ${id}.`);
+    }
+
+    await loadStashes();
+    const verb = action === 'delete' ? 'Deleted' : 'Updated';
+    if (failures.length) {
+      setAdminStatus(`${verb} ${processed} ${processed === 1 ? 'stash' : 'stashes'} · ${failures.length} failed.`, true);
+    } else {
+      setAdminStatus(`${verb} ${processed} ${processed === 1 ? 'stash' : 'stashes'}.`);
+    }
+  } catch (error) {
+    setAdminStatus(error.message || 'Batch action failed.', true);
+  } finally {
+    setBatchDisabled(false);
+  }
+}
+
+function setBatchDisabled(disabled) {
+  batchAllowDownloads.disabled = disabled;
+  batchPreviewOnly.disabled = disabled;
+  batchSetExpiry.disabled = disabled;
+  batchDelete.disabled = disabled;
+  clearSelection.disabled = disabled;
+  selectVisible.disabled = disabled || visibleIds.length === 0;
+}
+
 async function saveStash(stash, nameInput, expiryInput, downloadCheck, saveButton) {
   saveButton.disabled = true;
   setAdminStatus('Saving…');
@@ -275,6 +420,7 @@ async function deleteStash(stash) {
       const payload = await response.json().catch(() => ({}));
       throw new Error(payload.error || 'Could not delete stash.');
     }
+    selectedIds.delete(stash.id);
     await loadStashes();
     setAdminStatus('Deleted.');
   } catch (error) {
