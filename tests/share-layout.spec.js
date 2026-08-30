@@ -17,13 +17,14 @@ async function createProtectedPreviewOnlyShare(page) {
   return page.getByTestId('share-url').inputValue();
 }
 
-test('share filename uses eyebrow header while tags stay top-right and metadata stays below preview', async ({ page }) => {
+test('share filename uses eyebrow header while tags stay top-right and metadata stays below preview', async ({ page }, testInfo) => {
   const shareUrl = await createProtectedPreviewOnlyShare(page);
   await page.goto(shareUrl);
   await expect(page.getByTestId('media-state')).toBeVisible();
   await expect(page.getByTestId('preview-only-pill')).toBeVisible();
   await expect(page.locator('#protectedPill')).toBeVisible();
 
+  const card = page.locator('#shareCard');
   const heading = page.locator('.media-heading');
   const fileName = page.locator('#fileName');
   const tags = page.getByTestId('share-tags');
@@ -38,10 +39,10 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   await expect(fileSize).toHaveText(/^[\d.]+ (?:B|KB|MB|GB)$/);
   await expect(expiryLine).toHaveText(/^Expiry: \d{4}-\d{2}-\d{2}, (?:[1-9]|1[0-2]):\d{2}[ap]$/);
 
-  const [headingBox, fileNameBox, tagsBox, frameBox, metadataBox] = await Promise.all([
-    heading.boundingBox(), fileName.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
+  const [cardBox, headingBox, fileNameBox, tagsBox, frameBox, metadataBox] = await Promise.all([
+    card.boundingBox(), heading.boundingBox(), fileName.boundingBox(), tags.boundingBox(), frame.boundingBox(), metadata.boundingBox()
   ]);
-  expect(headingBox && fileNameBox && tagsBox && frameBox && metadataBox).toBeTruthy();
+  expect(cardBox && headingBox && fileNameBox && tagsBox && frameBox && metadataBox).toBeTruthy();
   expect(tagsBox.x).toBeGreaterThan(fileNameBox.x);
   expect(tagsBox.x + tagsBox.width).toBeLessThanOrEqual(headingBox.x + headingBox.width + 1);
   expect(tagsBox.y).toBeLessThan(frameBox.y);
@@ -73,4 +74,14 @@ test('share filename uses eyebrow header while tags stay top-right and metadata 
   expect(styles.sizeAlign).toBe('left');
   expect(styles.expiryAlign).toBe('right');
   expect(styles.whiteSpace).toBe('nowrap');
+
+  if (/mobile/i.test(testInfo.project.name)) {
+    const viewportWidth = page.viewportSize().width;
+    const rightCardInset = viewportWidth - (cardBox.x + cardBox.width);
+    const rightFrameInset = viewportWidth - (frameBox.x + frameBox.width);
+    expect(cardBox.x).toBeLessThanOrEqual(8);
+    expect(rightCardInset).toBeLessThanOrEqual(8);
+    expect(frameBox.x).toBeLessThanOrEqual(16);
+    expect(rightFrameInset).toBeLessThanOrEqual(16);
+  }
 });
