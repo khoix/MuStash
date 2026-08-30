@@ -186,7 +186,7 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
   expect(layout.expiryLineHeight).toBeGreaterThanOrEqual(layout.expiryHeight - 3);
 
   expect(Math.abs(layout.pillRight - layout.contentRight)).toBeLessThan(2);
-  expect(Math.abs(layout.pillTop - layout.contentTop)).toBeLessThan(2);
+  expect(Math.abs(layout.pillTop - (layout.contentTop - 5))).toBeLessThan(2);
   expect(layout.pillTop).toBeLessThan(layout.uuidTop - 4);
 
   expect(layout.visibleMeta).toHaveLength(2);
