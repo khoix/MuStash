@@ -33,6 +33,8 @@ function isAdminPath(req) {
 }
 
 function dispatch(req, res, next) {
+  const [pathname, query = ''] = String(req.url || '').split('?');
+  if (pathname === '/admin/') req.url = `/admin/index.html${query ? `?${query}` : ''}`;
   if (isAdminPath(req)) return adminApp(req, res, next);
   return app(req, res, next);
 }
