@@ -14,7 +14,7 @@ export default defineConfig({
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } }
   ],
   webServer: {
-    command: 'PORT=4173 MUSTASH_SECRET=e2e-secret-that-is-long-enough-for-tests node server.mjs',
+    command: 'PORT=4173 MUSTASH_SECRET=e2e-secret-that-is-long-enough-for-tests MUSTASH_ADMIN_PASSWORD=e2e-admin-password node test-mounted-server.mjs',
     url: 'http://127.0.0.1:4173/healthz',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000
