@@ -1,0 +1,123 @@
+@media (max-width: 760px) {
+  /* Empty status text should not reserve a blank row between controls and cards. */
+  #adminStatus:empty {
+    display: none;
+  }
+
+  #adminStatus:not(:empty) {
+    min-height: 0;
+    margin: 6px 2px 7px;
+  }
+
+  .admin-toolbar {
+    margin-bottom: 2px;
+  }
+
+  .batch-bar {
+    margin-bottom: 8px;
+  }
+
+  .batch-expiry input {
+    inline-size: calc(100% - 4px);
+    max-inline-size: calc(100% - 4px);
+    justify-self: start;
+  }
+
+  .stash-list {
+    gap: 8px;
+  }
+
+  .stash-card {
+    padding: 11px 12px 10px;
+  }
+
+  .stash-head {
+    gap: 7px;
+  }
+
+  .stash-head-main {
+    gap: 8px;
+  }
+
+  .stash-select {
+    padding-top: 1px;
+  }
+
+  .stash-title {
+    line-height: 1.05;
+  }
+
+  .stash-id {
+    margin-top: 1px;
+    line-height: 1.25;
+  }
+
+  .admin-pill-row {
+    align-self: center;
+  }
+
+  .stash-meta {
+    gap: 2px 12px;
+    margin: 7px 0 7px 27px;
+    line-height: 1.25;
+  }
+
+  .stash-edit {
+    gap: 5px;
+    padding-top: 7px;
+  }
+
+  .stash-edit .field {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .stash-edit .field input {
+    inline-size: calc(100% - 7px);
+    max-inline-size: calc(100% - 7px);
+    min-height: 38px;
+    height: 38px;
+    justify-self: start;
+  }
+
+  /* iOS gives datetime-local a stubborn intrinsic width. Leave a deliberate
+     right inset and clip any native-control overflow inside that allocation. */
+  .stash-edit input[type='datetime-local'] {
+    inline-size: calc(100% - 7px) !important;
+    max-inline-size: calc(100% - 7px) !important;
+    min-inline-size: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .admin-check {
+    min-height: 27px;
+    margin-left: 55px;
+  }
+
+  .stash-actions {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .stash-actions .primary-button,
+  .stash-actions .secondary-button {
+    min-height: 38px;
+    padding-inline: 7px;
+  }
+
+  .file-details {
+    margin-top: 7px;
+    padding-top: 7px;
+  }
+}
+
+@media (max-width: 360px) {
+  .stash-edit .field {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .admin-check {
+    margin-left: 48px;
+  }
+}
