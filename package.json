@@ -8,8 +8,8 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node --watch server.mjs",
+    "start": "node standalone.mjs",
+    "dev": "node --watch standalone.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

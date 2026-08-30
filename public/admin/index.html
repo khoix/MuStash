@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#111315">
+  <title>MuStash Admin</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="admin.css">
+  <script type="module" src="admin.js"></script>
+</head>
+<body>
+  <header class="site-header admin-header">
+    <a class="brand" href=".." aria-label="MuStash home">
+      <img src="../icons/mustash.svg" alt="" width="38" height="38">
+      <span>MuStash</span>
+    </a>
+    <span class="admin-badge">Admin</span>
+  </header>
+
+  <main class="admin-shell">
+    <section class="card admin-login" id="loginPanel" hidden>
+      <p class="eyebrow">Administration</p>
+      <h1>Manage current stashes.</h1>
+      <p class="admin-muted">Enter the configured admin password to continue.</p>
+      <form id="loginForm" class="admin-login-form">
+        <label class="field">
+          <span>Admin password</span>
+          <input id="adminPassword" type="password" autocomplete="current-password" required data-testid="admin-password">
+        </label>
+        <button class="primary-button" type="submit" data-testid="admin-login">Sign in</button>
+        <p class="status" id="loginStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="admin-title-row">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1>Current stashes</h1>
+        </div>
+        <div class="admin-top-actions">
+          <button class="secondary-button" id="refreshButton" type="button">Refresh</button>
+          <button class="secondary-button" id="logoutButton" type="button">Sign out</button>
+        </div>
+      </div>
+
+      <div class="admin-summary" aria-label="Stash summary">
+        <div class="summary-card"><strong id="stashCount">0</strong><span>Active</span></div>
+        <div class="summary-card"><strong id="totalSize">0 B</strong><span>Stored</span></div>
+        <div class="summary-card"><strong id="protectedCount">0</strong><span>Protected</span></div>
+        <div class="summary-card"><strong id="previewOnlyCount">0</strong><span>Preview only</span></div>
+      </div>
+
+      <div class="admin-toolbar">
+        <label class="admin-search">
+          <span class="sr-only">Filter stashes</span>
+          <input id="searchInput" type="search" placeholder="Filter by stash or filename…" autocomplete="off" data-testid="admin-search">
+        </label>
+        <span class="admin-muted" id="visibleCount"></span>
+      </div>
+
+      <p class="status" id="adminStatus" role="status" aria-live="polite"></p>
+      <div class="stash-list" id="stashList" data-testid="admin-stash-list"></div>
+      <div class="card empty-state" id="emptyState" hidden>No active stashes.</div>
+    </section>
+  </main>
+</body>
+</html>
