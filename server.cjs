@@ -32,10 +32,31 @@ function isAdminPath(req) {
     || pathname.startsWith('/api/admin/');
 }
 
+function allowSameOriginContentFrames(req, res) {
+  const pathname = String(req.url || '').split('?')[0];
+  if (!pathname.startsWith('/api/shares/') || !pathname.endsWith('/content')) return;
+
+  // Helmet correctly prevents MuStash pages from being framed, but PDF/text
+  // previews are intentionally embedded by the same-origin recipient page.
+  // Adjust only file-content responses at the point headers are committed.
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function writeHeadWithPreviewCsp(...args) {
+    const header = res.getHeader('Content-Security-Policy');
+    if (typeof header === 'string') {
+      res.setHeader(
+        'Content-Security-Policy',
+        header.replace(/frame-ancestors\s+'none'/i, "frame-ancestors 'self'")
+      );
+    }
+    return originalWriteHead.apply(this, args);
+  };
+}
+
 function dispatch(req, res, next) {
   const [pathname, query = ''] = String(req.url || '').split('?');
   if (pathname === '/admin/') req.url = `/admin/index.html${query ? `?${query}` : ''}`;
   if (isAdminPath(req)) return adminApp(req, res, next);
+  allowSameOriginContentFrames(req, res);
   return app(req, res, next);
 }
 
