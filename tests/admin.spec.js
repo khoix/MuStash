@@ -110,6 +110,53 @@ test('admin batch actions apply to selected visible stashes', async ({ page }) =
   }
 });
 
+test('admin mobile layout stays contained and compact', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const stashId = await createStash(page, `mobile-layout-${Date.now()}.png`);
+
+  await loginAdmin(page);
+  await page.getByTestId('admin-search').fill(stashId);
+  const card = page.locator(`[data-stash-id="${stashId}"]`);
+  await expect(card).toBeVisible();
+  await card.getByTestId('admin-select-stash').check();
+  await expect(page.getByTestId('admin-batch-bar')).toBeVisible();
+
+  const layout = await page.evaluate((id) => {
+    const rect = (element) => element.getBoundingClientRect();
+    const card = document.querySelector(`[data-stash-id="${id}"]`);
+    const cardRect = rect(card);
+    const expiryRect = rect(card.querySelector('[data-testid="admin-stash-expiry"]'));
+    const batchRect = rect(document.querySelector('[data-testid="admin-batch-bar"]'));
+    const batchExpiryRect = rect(document.querySelector('[data-testid="batch-expiry"]'));
+    const setExpiryRect = rect(document.querySelector('[data-testid="batch-set-expiry"]'));
+    const actionRects = [
+      card.querySelector('[data-testid="admin-save-stash"]'),
+      card.querySelector('.stash-actions a'),
+      card.querySelector('[data-testid="admin-delete-stash"]')
+    ].map(rect);
+
+    return {
+      viewportWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      cardLeft: cardRect.left,
+      cardRight: cardRect.right,
+      expiryRight: expiryRect.right,
+      batchHeight: batchRect.height,
+      batchExpiryRight: batchExpiryRect.right,
+      setExpiryLeft: setExpiryRect.left,
+      actionTops: actionRects.map((item) => item.top)
+    };
+  }, stashId);
+
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.cardLeft).toBeGreaterThanOrEqual(6);
+  expect(layout.cardRight).toBeLessThanOrEqual(layout.viewportWidth - 6);
+  expect(layout.expiryRight).toBeLessThanOrEqual(layout.cardRight);
+  expect(layout.batchExpiryRight).toBeLessThanOrEqual(layout.setExpiryLeft);
+  expect(layout.batchHeight).toBeLessThan(215);
+  expect(Math.max(...layout.actionTops) - Math.min(...layout.actionTops)).toBeLessThan(3);
+});
+
 test('admin API rejects unauthenticated access', async ({ request }) => {
   const response = await request.get('/mustash/api/admin/stashes');
   expect(response.status()).toBe(401);
