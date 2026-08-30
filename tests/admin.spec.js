@@ -118,6 +118,11 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
   await page.getByTestId('admin-search').fill(stashId);
   const card = page.locator(`[data-stash-id="${stashId}"]`);
   await expect(card).toBeVisible();
+
+  await card.getByTestId('admin-allow-download').uncheck();
+  await card.getByTestId('admin-save-stash').click();
+  await expect(card).toContainText('Preview only');
+
   await card.getByTestId('admin-select-stash').check();
   await expect(page.getByTestId('admin-batch-bar')).toBeVisible();
 
@@ -125,7 +130,11 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
     const rect = (element) => element.getBoundingClientRect();
     const card = document.querySelector(`[data-stash-id="${id}"]`);
     const cardRect = rect(card);
-    const expiryRect = rect(card.querySelector('[data-testid="admin-stash-expiry"]'));
+    const expiry = card.querySelector('[data-testid="admin-stash-expiry"]');
+    const expiryRect = rect(expiry);
+    const expiryStyle = getComputedStyle(expiry);
+    const pillRect = rect(card.querySelector('.admin-pill-row'));
+    const titleRect = rect(card.querySelector('.stash-title'));
     const batchRect = rect(document.querySelector('[data-testid="admin-batch-bar"]'));
     const batchExpiryRect = rect(document.querySelector('[data-testid="batch-expiry"]'));
     const setExpiryRect = rect(document.querySelector('[data-testid="batch-set-expiry"]'));
@@ -134,6 +143,15 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
       card.querySelector('.stash-actions a'),
       card.querySelector('[data-testid="admin-delete-stash"]')
     ].map(rect);
+    const visibleMeta = [...card.querySelectorAll('.stash-meta > span')]
+      .filter((span) => getComputedStyle(span).display !== 'none')
+      .map((span) => ({
+        text: span.textContent,
+        left: rect(span).left,
+        right: rect(span).right,
+        top: rect(span).top
+      }))
+      .sort((a, b) => a.left - b.left);
 
     return {
       viewportWidth: window.innerWidth,
@@ -141,6 +159,12 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
       cardLeft: cardRect.left,
       cardRight: cardRect.right,
       expiryRight: expiryRect.right,
+      expiryHeight: expiryRect.height,
+      expiryLineHeight: Number.parseFloat(expiryStyle.lineHeight),
+      pillRight: pillRect.right,
+      pillTop: pillRect.top,
+      titleTop: titleRect.top,
+      visibleMeta,
       batchHeight: batchRect.height,
       batchExpiryRight: batchExpiryRect.right,
       setExpiryLeft: setExpiryRect.left,
@@ -152,6 +176,16 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
   expect(layout.cardLeft).toBeGreaterThanOrEqual(6);
   expect(layout.cardRight).toBeLessThanOrEqual(layout.viewportWidth - 6);
   expect(layout.expiryRight).toBeLessThanOrEqual(layout.cardRight);
+  expect(layout.expiryLineHeight).toBeGreaterThanOrEqual(layout.expiryHeight - 3);
+
+  expect(layout.pillRight).toBeLessThanOrEqual(layout.cardRight - 8);
+  expect(Math.abs(layout.pillTop - layout.titleTop)).toBeLessThan(4);
+
+  expect(layout.visibleMeta).toHaveLength(2);
+  expect(layout.visibleMeta[0].text).toMatch(/^Created /);
+  expect(layout.visibleMeta[1].text).toMatch(/\b(?:B|KB|MB|GB)$/);
+  expect(Math.abs(layout.visibleMeta[0].top - layout.visibleMeta[1].top)).toBeLessThan(2);
+
   expect(layout.batchExpiryRight).toBeLessThanOrEqual(layout.setExpiryLeft);
   expect(layout.batchHeight).toBeLessThan(215);
   expect(Math.max(...layout.actionTops) - Math.min(...layout.actionTops)).toBeLessThan(3);
