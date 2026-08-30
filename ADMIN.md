@@ -22,6 +22,8 @@ MUSTASH_ADMIN_PASSWORD='replace-with-a-long-unique-password' npm start
 
 The portal lists currently active stashes and their files, aggregate size, creation and expiry times, protection state, and download policy. An authenticated administrator can rename a stash, change its expiry within `MAX_TTL_HOURS`, toggle Allow Download, open its recipient preview, or delete the stash and all stored files immediately.
 
+Multiple stashes can also be selected for batch management. The **Select visible** control selects the current filtered result set, while individual stash checkboxes can build a custom selection. Batch actions can enable downloads, switch selected stashes to preview-only, set one expiry across the selection, or delete the selected stashes and their stored files.
+
 Security behavior:
 
 - Admin access is disabled entirely when `MUSTASH_ADMIN_PASSWORD` is unset or shorter than 12 characters.

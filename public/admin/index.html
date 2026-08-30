@@ -59,7 +59,30 @@
           <span class="sr-only">Filter stashes</span>
           <input id="searchInput" type="search" placeholder="Filter by stash or filename…" autocomplete="off" data-testid="admin-search">
         </label>
+        <label class="admin-select-visible">
+          <input id="selectVisible" type="checkbox" data-testid="admin-select-visible">
+          <span>Select visible</span>
+        </label>
         <span class="admin-muted" id="visibleCount"></span>
+      </div>
+
+      <div class="batch-bar" id="batchBar" hidden data-testid="admin-batch-bar">
+        <div class="batch-selection">
+          <strong id="selectedCount">0 selected</strong>
+          <button class="text-button" id="clearSelection" type="button">Clear</button>
+        </div>
+        <div class="batch-actions">
+          <button class="secondary-button" id="batchAllowDownloads" type="button" data-testid="batch-allow-downloads">Allow downloads</button>
+          <button class="secondary-button" id="batchPreviewOnly" type="button" data-testid="batch-preview-only">Preview only</button>
+          <div class="batch-expiry">
+            <label>
+              <span class="sr-only">Batch expiry</span>
+              <input id="batchExpiry" type="datetime-local" data-testid="batch-expiry">
+            </label>
+            <button class="secondary-button" id="batchSetExpiry" type="button" data-testid="batch-set-expiry">Set expiry</button>
+          </div>
+          <button class="secondary-button danger-button" id="batchDelete" type="button" data-testid="batch-delete">Delete selected</button>
+        </div>
       </div>
 
       <p class="status" id="adminStatus" role="status" aria-live="polite"></p>
