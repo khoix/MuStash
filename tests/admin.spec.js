@@ -130,11 +130,15 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
     const rect = (element) => element.getBoundingClientRect();
     const card = document.querySelector(`[data-stash-id="${id}"]`);
     const cardRect = rect(card);
+    const cardStyle = getComputedStyle(card);
+    const contentLeft = cardRect.left + Number.parseFloat(cardStyle.paddingLeft);
+    const contentRight = cardRect.right - Number.parseFloat(cardStyle.paddingRight);
+    const contentTop = cardRect.top + Number.parseFloat(cardStyle.paddingTop);
     const expiry = card.querySelector('[data-testid="admin-stash-expiry"]');
     const expiryRect = rect(expiry);
     const expiryStyle = getComputedStyle(expiry);
     const pillRect = rect(card.querySelector('.admin-pill-row'));
-    const titleRect = rect(card.querySelector('.stash-title'));
+    const uuidRect = rect(card.querySelector('.stash-id'));
     const batchRect = rect(document.querySelector('[data-testid="admin-batch-bar"]'));
     const batchExpiryRect = rect(document.querySelector('[data-testid="batch-expiry"]'));
     const setExpiryRect = rect(document.querySelector('[data-testid="batch-set-expiry"]'));
@@ -158,12 +162,15 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
       scrollWidth: document.documentElement.scrollWidth,
       cardLeft: cardRect.left,
       cardRight: cardRect.right,
+      contentLeft,
+      contentRight,
+      contentTop,
       expiryRight: expiryRect.right,
       expiryHeight: expiryRect.height,
       expiryLineHeight: Number.parseFloat(expiryStyle.lineHeight),
       pillRight: pillRect.right,
       pillTop: pillRect.top,
-      titleTop: titleRect.top,
+      uuidTop: uuidRect.top,
       visibleMeta,
       batchHeight: batchRect.height,
       batchExpiryRight: batchExpiryRect.right,
@@ -178,13 +185,16 @@ test('admin mobile layout stays contained and compact', async ({ page }) => {
   expect(layout.expiryRight).toBeLessThanOrEqual(layout.cardRight);
   expect(layout.expiryLineHeight).toBeGreaterThanOrEqual(layout.expiryHeight - 3);
 
-  expect(layout.pillRight).toBeLessThanOrEqual(layout.cardRight - 8);
-  expect(Math.abs(layout.pillTop - layout.titleTop)).toBeLessThan(4);
+  expect(Math.abs(layout.pillRight - layout.contentRight)).toBeLessThan(2);
+  expect(Math.abs(layout.pillTop - layout.contentTop)).toBeLessThan(2);
+  expect(layout.pillTop).toBeLessThan(layout.uuidTop - 4);
 
   expect(layout.visibleMeta).toHaveLength(2);
   expect(layout.visibleMeta[0].text).toMatch(/^Created /);
   expect(layout.visibleMeta[1].text).toMatch(/\b(?:B|KB|MB|GB)$/);
   expect(Math.abs(layout.visibleMeta[0].top - layout.visibleMeta[1].top)).toBeLessThan(2);
+  expect(Math.abs(layout.visibleMeta[0].left - layout.contentLeft)).toBeLessThan(2);
+  expect(Math.abs(layout.visibleMeta[1].right - layout.contentRight)).toBeLessThan(2);
 
   expect(layout.batchExpiryRight).toBeLessThanOrEqual(layout.setExpiryLeft);
   expect(layout.batchHeight).toBeLessThan(215);
