@@ -62,7 +62,8 @@ test('admin batch actions apply to selected visible stashes', async ({ page }) =
   await page.getByTestId('admin-select-visible').check();
   await expect(page.getByTestId('admin-batch-bar')).toBeVisible();
   await expect(page.getByTestId('admin-batch-bar')).toContainText('2 selected');
-  await expect(page.getByTestId('admin-select-stash')).toBeChecked();
+  await expect(page.getByTestId('admin-select-stash').first()).toBeChecked();
+  await expect(page.getByTestId('admin-select-stash').last()).toBeChecked();
 
   await page.getByTestId('batch-preview-only').click();
   await expect(page.locator('#adminStatus')).toContainText('Updated 2 stashes');
