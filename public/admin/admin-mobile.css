@@ -60,8 +60,13 @@
     padding: 11px 12px 10px;
   }
 
+  /* Keep status pills independent of the title/UUID flow so they stay at the
+     actual top-right of the card instead of drifting down beside the UUID. */
   .stash-head {
+    position: relative;
     gap: 7px;
+    padding-right: min(44%, 150px);
+    min-height: 38px;
   }
 
   .stash-head-main {
@@ -82,14 +87,22 @@
   }
 
   .admin-pill-row {
-    align-self: flex-start;
-    margin-left: auto;
-    margin-top: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
+    align-self: auto;
+    justify-content: flex-end;
+    max-width: 44%;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
   }
 
+  /* Created uses the card's full content width; it should align with the card
+     padding edge, not with the title text after the selection checkbox. */
   .stash-meta {
     gap: 10px;
-    margin: 7px 0 7px 27px;
+    margin: 8px 0 7px;
     line-height: 1.25;
   }
 
@@ -165,6 +178,14 @@
 }
 
 @media (max-width: 360px) {
+  .stash-head {
+    padding-right: min(42%, 132px);
+  }
+
+  .admin-pill-row {
+    max-width: 42%;
+  }
+
   .stash-edit .field {
     grid-template-columns: 42px minmax(0, 1fr);
     gap: 6px;
