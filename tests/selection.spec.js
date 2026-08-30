@@ -21,3 +21,24 @@ test('selected file can be removed before it is stashed', async ({ page }) => {
   await expect(page.locator('#status')).toContainText('Choose a file first');
   await expect(page.getByTestId('result-card')).toBeHidden();
 });
+
+test('stash name is prompted only when multiple files are queued', async ({ page }) => {
+  await page.goto('/');
+
+  const fileInput = page.getByTestId('file-input');
+  const stashNameField = page.getByTestId('stash-name-field');
+  const stashNameInput = page.getByTestId('stash-name-input');
+
+  await expect(stashNameField).toBeHidden();
+
+  await fileInput.setInputFiles({ name: 'one.png', mimeType: 'image/png', buffer: png });
+  await expect(stashNameField).toBeHidden();
+
+  await fileInput.setInputFiles({ name: 'two.png', mimeType: 'image/png', buffer: png });
+  await expect(stashNameField).toBeVisible();
+  await stashNameInput.fill('Two-file stash');
+
+  await page.getByRole('button', { name: 'Remove two.png' }).click();
+  await expect(stashNameField).toBeHidden();
+  await expect(stashNameInput).toHaveValue('');
+});

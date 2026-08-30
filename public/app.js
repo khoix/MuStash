@@ -6,6 +6,7 @@ initTheme();
 const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
 const stashNameInput = document.getElementById('stashName');
+const stashNameField = document.getElementById('stashNameField');
 const dropzone = document.getElementById('dropzone');
 const dropHint = document.getElementById('dropHint');
 const localPreview = document.getElementById('localPreview');
@@ -253,6 +254,10 @@ function renderLocalPreview() {
 }
 
 function updateSelectionStatus() {
+  const showStashName = selectedFiles.length > 1;
+  stashNameField.hidden = !showStashName;
+  if (!showStashName) stashNameInput.value = '';
+
   if (selectedFiles.length === 0) {
     setStatus('');
     stashButton.disabled = false;
