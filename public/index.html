@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="preview-controls.css">
+  <link rel="stylesheet" href="multi-upload.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -47,15 +48,20 @@
 
     <section class="card" id="uploadCard">
       <form id="uploadForm" novalidate>
+        <label class="field stash-name-field">
+          <span>Stash name <small>optional</small></span>
+          <input id="stashName" name="stashName" type="text" maxlength="80" autocomplete="off" placeholder="Name this stash" data-testid="stash-name-input">
+        </label>
+
         <label class="dropzone" id="dropzone" for="fileInput" data-drag-enabled="false">
-          <input id="fileInput" name="file" type="file" accept="image/*,audio/*,video/*,.txt,.csv,.md,.markdown,.json,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp" required data-testid="file-input">
+          <input id="fileInput" name="file" type="file" multiple accept="image/*,audio/*,video/*,.txt,.csv,.md,.markdown,.json,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp" required data-testid="file-input">
           <span class="drop-icon" aria-hidden="true">↥</span>
-          <strong>Choose a file</strong>
-          <span id="dropHint" data-testid="drop-hint" hidden>or drop it here</span>
+          <strong>Choose files</strong>
+          <span id="dropHint" data-testid="drop-hint" hidden>or drop them here</span>
           <small id="limitText">Media, PDF, Office/OpenDocument, and UTF-8 text files</small>
         </label>
 
-        <div class="preview" id="localPreview" hidden aria-live="polite"></div>
+        <div class="preview multi-preview" id="localPreview" hidden aria-live="polite"></div>
 
         <div class="settings-grid">
           <label class="field settings-ttl">

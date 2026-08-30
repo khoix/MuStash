@@ -55,7 +55,7 @@
       <form id="unlockForm" class="unlock-form" hidden>
         <div class="big-mark" aria-hidden="true">⌁</div>
         <h1>Protected stash</h1>
-        <p>Enter the password to preview this file.</p>
+        <p>Enter the password to preview this stash.</p>
         <label class="field">
           <span>Password</span>
           <input id="unlockPassword" type="password" minlength="8" maxlength="128" autocomplete="current-password" required data-testid="unlock-password">
@@ -66,17 +66,32 @@
 
       <div id="mediaState" hidden data-testid="media-state">
         <div class="media-heading">
-          <p class="eyebrow" id="fileName">File</p>
+          <p class="eyebrow" id="fileName">Stash</p>
           <div class="pill-row" data-testid="share-tags">
             <span class="protected-pill" id="protectedPill" hidden>Protected</span>
             <span class="protected-pill preview-only-pill" id="previewOnlyPill" hidden data-testid="preview-only-pill">Preview only</span>
           </div>
         </div>
         <div class="media-frame" id="mediaFrame"></div>
+        <div class="stash-file-list" id="stashFileList" hidden data-testid="stash-file-list"></div>
         <div class="media-meta-line" data-testid="media-meta-line">
           <span id="fileSize"></span>
           <span id="expiryLine"></span>
         </div>
+
+        <div class="download-panel" id="downloadPanel" hidden data-testid="download-panel">
+          <div class="download-panel-heading">
+            <strong>Select files to download</strong>
+            <button class="download-select-all" id="downloadSelectAll" type="button">Select all</button>
+          </div>
+          <div class="download-file-list" id="downloadFileList"></div>
+          <p class="status" id="downloadStatus" role="status" aria-live="polite"></p>
+          <div class="download-panel-actions">
+            <button class="secondary-button" id="downloadCancel" type="button">Cancel</button>
+            <button class="primary-button" id="downloadSelected" type="button" data-testid="download-selected">Download selected</button>
+          </div>
+        </div>
+
         <div class="button-row share-actions">
           <button class="primary-button" id="shareButton" type="button">Share</button>
           <a class="secondary-button link-button" id="downloadButton" data-testid="download-button">Download</a>
