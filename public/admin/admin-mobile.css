@@ -1,3 +1,32 @@
+.stash-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+
+.stash-meta > span:nth-child(1),
+.stash-meta > span:nth-child(4) {
+  display: none;
+}
+
+.stash-meta > span:nth-child(2) {
+  order: 2;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.stash-meta > span:nth-child(3) {
+  order: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 760px) {
   /* Empty status text should not reserve a blank row between controls and cards. */
   #adminStatus:empty {
@@ -53,11 +82,13 @@
   }
 
   .admin-pill-row {
-    align-self: center;
+    align-self: flex-start;
+    margin-left: auto;
+    margin-top: 0;
   }
 
   .stash-meta {
-    gap: 2px 12px;
+    gap: 10px;
     margin: 7px 0 7px 27px;
     line-height: 1.25;
   }
@@ -80,13 +111,35 @@
     justify-self: start;
   }
 
-  /* iOS gives datetime-local a stubborn intrinsic width. Leave a deliberate
-     right inset and clip any native-control overflow inside that allocation. */
+  /* iOS gives datetime-local a stubborn intrinsic width and can render the
+     value high inside the control. Match the value line box to the 36px
+     content area so it stays centered while retaining the native picker. */
   .stash-edit input[type='datetime-local'] {
     inline-size: calc(100% - 7px) !important;
     max-inline-size: calc(100% - 7px) !important;
     min-inline-size: 0 !important;
     box-sizing: border-box;
+    padding-block: 0;
+    line-height: 36px;
+  }
+
+  .stash-edit input[type='datetime-local']::-webkit-date-and-time-value {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    line-height: 36px;
+  }
+
+  .batch-expiry input[type='datetime-local'] {
+    padding-block: 0;
+    line-height: 38px;
+  }
+
+  .batch-expiry input[type='datetime-local']::-webkit-date-and-time-value {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    line-height: 38px;
   }
 
   .admin-check {
