@@ -15,13 +15,19 @@ const passwordInput = document.getElementById('password');
 const allowDownloadInput = document.getElementById('allowDownload');
 const status = document.getElementById('status');
 const stashButton = document.getElementById('stashButton');
-const resultCard = document.getElementById('resultCard');
-const shareUrlInput = document.getElementById('shareUrl');
+const resultOverlay = document.getElementById('resultOverlay');
+const resultClose = document.getElementById('resultClose');
+const resultBackdrop = document.getElementById('resultBackdrop');
+const shareUrlInput = document.getElementById('stashLink');
 const expiryText = document.getElementById('expiryText');
-const shareButton = document.getElementById('shareButton');
+const shareButton = document.getElementById('sendButton');
 const copyButton = document.getElementById('copyButton');
+const shareUrlHint = document.getElementById('stashLinkHint');
+let copyButtonTimer = null;
+let copyHintTimer = null;
 const openButton = document.getElementById('openButton');
 const limitText = document.getElementById('limitText');
+let resultReturnFocus = null;
 
 let selectedFiles = [];
 let previewUrls = [];
@@ -52,7 +58,7 @@ ttlInput.addEventListener('mouseup', (event) => event.preventDefault());
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('');
-  resultCard.hidden = true;
+  closeResultOverlay();
   if (selectedFiles.length === 0) return setStatus('Choose a file first.', true);
 
   const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
@@ -104,8 +110,7 @@ form.addEventListener('submit', async (event) => {
     shareUrlInput.value = shareUrl.href;
     openButton.href = shareUrl.href;
     expiryText.textContent = `Available until ${new Date(payload.expiresAt).toLocaleString()}.`;
-    resultCard.hidden = false;
-    resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    openResultOverlay();
     setStatus('');
   } catch (error) {
     setStatus(error.message || 'Upload failed.', true);
@@ -115,21 +120,31 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-copyButton.addEventListener('click', async () => {
-  await copyText(shareUrlInput.value);
-  const old = copyButton.textContent;
-  copyButton.textContent = 'Copied';
-  setTimeout(() => { copyButton.textContent = old; }, 1200);
+resultClose.addEventListener('click', closeResultOverlay);
+resultBackdrop.addEventListener('click', closeResultOverlay);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !resultOverlay.hidden) {
+    event.preventDefault();
+    closeResultOverlay();
+  }
+});
+
+copyButton.addEventListener('click', copyShareUrl);
+shareUrlInput.addEventListener('click', copyShareUrl);
+shareUrlInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    copyShareUrl();
+  }
 });
 
 shareButton.addEventListener('click', async () => {
   const url = shareUrlInput.value;
   const title = stashNameInput.value.trim() || 'MuStash share';
   if (navigator.share) {
-    try { await navigator.share({ title, url }); } catch (error) { if (error.name !== 'AbortError') setStatus('Could not open the share sheet.', true); }
+    try { await navigator.share({ title, url }); } catch (error) { if (error.name !== 'AbortError') showCopyFeedback('Could not open the share sheet.', true); }
   } else {
-    await copyText(url);
-    setStatus('Share URL copied to your clipboard.');
+    await copyShareUrl();
   }
 });
 
@@ -295,15 +310,72 @@ function stepTtl(direction) {
   ttlInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function openResultOverlay() {
+  resultReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : stashButton;
+  resetCopyFeedback();
+  copyButton.textContent = 'Copy';
+  resultOverlay.hidden = false;
+  document.body.classList.add('result-open');
+  requestAnimationFrame(() => {
+    shareUrlInput.focus();
+    shareUrlInput.select();
+  });
+}
+
+function closeResultOverlay() {
+  if (resultOverlay.hidden) return;
+  resultOverlay.hidden = true;
+  document.body.classList.remove('result-open');
+  const restore = resultReturnFocus;
+  resultReturnFocus = null;
+  if (restore?.isConnected) restore.focus();
+}
+
 function setStatus(message, error = false) {
   status.textContent = message;
   status.classList.toggle('error', error);
 }
 
-async function copyText(value) {
-  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
+async function copyShareUrl() {
   shareUrlInput.select();
-  document.execCommand('copy');
+  shareUrlInput.setSelectionRange(0, shareUrlInput.value.length);
+  const copied = await copyText(shareUrlInput.value);
+  if (!copied) {
+    showCopyFeedback('Copy failed — the link is selected, copy it manually.', true);
+    return;
+  }
+  showCopyFeedback('Link copied to clipboard');
+  copyButton.textContent = 'Copied';
+  clearTimeout(copyButtonTimer);
+  copyButtonTimer = setTimeout(() => { copyButton.textContent = 'Copy'; }, 1600);
+}
+
+function showCopyFeedback(message, error = false) {
+  shareUrlHint.textContent = message;
+  shareUrlHint.classList.toggle('error', error);
+  shareUrlHint.classList.toggle('copied', !error);
+  clearTimeout(copyHintTimer);
+  copyHintTimer = setTimeout(resetCopyFeedback, 2400);
+}
+
+function resetCopyFeedback() {
+  shareUrlHint.textContent = 'Tap the link to copy it';
+  shareUrlHint.classList.remove('error', 'copied');
+}
+
+async function copyText(value) {
+  // navigator.clipboard is unavailable on plain-HTTP LAN origins; fall back to execCommand.
+  if (navigator.clipboard?.writeText && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {}
+  }
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  }
 }
 
 function formatBytes(bytes) {

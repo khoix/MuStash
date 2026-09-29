@@ -38,17 +38,17 @@ MuStash currently accepts:
 - Video: MP4, WebM
 - Audio: MP3, WAV, OGG, M4A/MP4 audio, AAC, FLAC
 - Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP
-- UTF-8 text: TXT, CSV, Markdown (`.md` / `.markdown`), JSON
+- UTF-8 text: any extension (or none), after streaming UTF-8 validation; known text extensions keep their MIME type (TXT, CSV, Markdown, JSON), others are stored as `text/plain`
 
-HTML and SVG are intentionally not accepted as upload formats.
+HTML and SVG are not accepted as active/browser-executable formats. UTF-8 content that happens to look like HTML is still allowed and is always served as non-executable text (`text/plain` + `nosniff`). Typical SVG files are rejected by binary type detection.
 
 ## Security model
 
 MuStash intentionally does **not** trust filenames or browser-provided MIME types for binary files.
 
 - Binary file type is detected from file contents with `file-type` independently for every uploaded file.
-- Only an allowlist of image/audio/video/document formats is accepted.
-- Plain-text formats use a small extension allowlist **plus** streaming UTF-8 validation and rejection of binary control characters.
+- Only an allowlist of image/audio/video/document formats is accepted for files with a detectable binary type.
+- Files without a detectable binary type are accepted when they pass streaming UTF-8 validation and contain no binary control characters, regardless of filename extension. Known text extensions map to their usual MIME types; everything else is stored as `text/plain`.
 - Uploaded text is always served using an explicit non-executable text/JSON MIME type together with `X-Content-Type-Options: nosniff`; text content is never inserted into MuStash's page as HTML.
 - Uploaded files receive server-generated UUID filenames; original filenames and stash names are display metadata only.
 - Per-file size, aggregate stash size, file count, and TTL are server-side bounded. A `Content-Length` pre-check rejects clearly oversized multipart requests early, and the authoritative aggregate size is checked again from the uploaded file records before the stash is committed.
