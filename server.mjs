@@ -118,7 +118,8 @@ export async function createApp() {
 
   const uploadLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    limit: 30,
+    // E2E runs desktop + mobile against one server; raise via MUSTASH_UPLOAD_RATE_LIMIT.
+    limit: clampNumber(process.env.MUSTASH_UPLOAD_RATE_LIMIT, 30, 1, 10_000),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Too many uploads from this address. Try again later.' }
