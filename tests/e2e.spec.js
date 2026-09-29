@@ -58,6 +58,15 @@ async function uploadPng(page, password = '', allowDownload = true) {
   return page.getByTestId('share-url').inputValue();
 }
 
+function contentUrlForShare(shareUrl) {
+  const url = new URL(shareUrl);
+  const parts = url.pathname.split('/').filter(Boolean);
+  const shareIndex = parts.lastIndexOf('s');
+  const id = parts[shareIndex + 1];
+  const mount = shareIndex > 0 ? `/${parts.slice(0, shareIndex).join('/')}` : '';
+  return `${url.origin}${mount}/api/shares/${encodeURIComponent(id)}/content`;
+}
+
 test('uploads, previews, and downloads an unrestricted image', async ({ page }) => {
   const shareUrl = await uploadPng(page);
   expect(shareUrl).not.toContain('#k=');
@@ -83,10 +92,12 @@ test('accepts UTF-8 TXT files and serves them as non-executable text', async ({ 
 
   await page.goto(shareUrl);
   await expect(page.getByTestId('media-state')).toBeVisible();
-  const preview = page.locator('iframe[data-testid="media-preview"]');
+  const preview = page.getByTestId('media-preview');
   await expect(preview).toBeVisible();
-  const contentUrl = await preview.getAttribute('src');
-  const response = await page.request.get(new URL(contentUrl, page.url()).href);
+  await expect(preview).toContainText('Hello from MuStash.');
+  await expect(preview).toContainText('<script>alert(1)</script>');
+
+  const response = await page.request.get(contentUrlForShare(shareUrl));
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toContain('text/plain');
   expect(response.headers()['x-content-type-options']).toBe('nosniff');
@@ -188,9 +199,83 @@ test('password share uses a derived fragment key and can also be unlocked manual
   await context.close();
 });
 
-test('rejects unsupported active-content files server-side', async ({ page }) => {
+test('accepts UTF-8 text with non-text extensions as plain text', async ({ page }) => {
+  const shareUrl = await uploadFile(page, {
+    name: 'khoix.net.ovpn',
+    mimeType: 'application/x-openvpn-profile',
+    buffer: Buffer.from('client\ndev tun\nproto udp\nremote vpn.example 1194\n', 'utf8')
+  });
+
+  await page.goto(shareUrl);
+  await expect(page.getByTestId('media-state')).toBeVisible();
+  const preview = page.getByTestId('media-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('remote vpn.example 1194');
+
+  const response = await page.request.get(contentUrlForShare(shareUrl));
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('text/plain');
+  expect(response.headers()['x-content-type-options']).toBe('nosniff');
+  expect(await response.text()).toContain('remote vpn.example 1194');
+});
+
+test.describe('dark color scheme', () => {
+  test.use({ colorScheme: 'dark' });
+
+  test('text preview keeps dark ink on light paper', async ({ page }) => {
+    const shareUrl = await uploadFile(page, {
+      name: 'khoix.net.ovpn',
+      mimeType: 'application/x-openvpn-profile',
+      buffer: Buffer.from('client\ndev tun\nproto tcp\nremote 1.2.3.4 1194\n', 'utf8')
+    }, { allowDownload: false });
+
+    await page.goto(shareUrl);
+    await expect(page.getByTestId('preview-only-pill')).toBeVisible();
+    const preview = page.getByTestId('media-preview');
+    await expect(preview).toContainText('dev tun');
+
+    const styles = await preview.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        tag: element.tagName,
+        color: computed.color,
+        backgroundColor: computed.backgroundColor
+      };
+    });
+
+    expect(styles.tag).toBe('PRE');
+    expect(styles.color).toBe('rgb(24, 26, 28)');
+    expect(styles.backgroundColor).toBe('rgb(244, 241, 235)');
+  });
+});
+
+test('serves HTML-looking UTF-8 uploads as non-executable text', async ({ page }) => {
+  const shareUrl = await uploadFile(page, {
+    name: 'payload.html',
+    mimeType: 'text/html',
+    buffer: Buffer.from('<script>alert(1)</script>', 'utf8')
+  });
+
+  await page.goto(shareUrl);
+  await expect(page.getByTestId('media-state')).toBeVisible();
+  const preview = page.getByTestId('media-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveText('<script>alert(1)</script>');
+
+  const response = await page.request.get(contentUrlForShare(shareUrl));
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('text/plain');
+  expect(response.headers()['x-content-type-options']).toBe('nosniff');
+  expect(await response.text()).toBe('<script>alert(1)</script>');
+});
+
+test('rejects unsupported binary files server-side', async ({ page }) => {
   await page.goto('/');
-  await page.getByTestId('file-input').setInputFiles({ name: 'payload.html', mimeType: 'text/html', buffer: Buffer.from('<script>alert(1)</script>') });
+  await page.getByTestId('file-input').setInputFiles({
+    name: 'payload.bin',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from([0x00, 0x01, 0x02, 0xff, 0xfe, 0x00, 0x10])
+  });
   await page.getByTestId('stash-button').click();
   await expect(page.locator('#status')).toContainText('Unsupported file type');
   await expect(page.getByTestId('result-card')).toBeHidden();

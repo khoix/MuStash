@@ -21,7 +21,7 @@ const expiryLine = document.getElementById('expiryLine');
 const stashFileList = document.getElementById('stashFileList');
 const protectedPill = document.getElementById('protectedPill');
 const previewOnlyPill = document.getElementById('previewOnlyPill');
-const shareButton = document.getElementById('shareButton');
+const shareButton = document.getElementById('sendButton');
 const downloadButton = document.getElementById('downloadButton');
 const downloadPanel = document.getElementById('downloadPanel');
 const downloadFileList = document.getElementById('downloadFileList');
@@ -299,18 +299,14 @@ async function createPreview(file, allowDownload) {
     element = document.createElement('audio');
     element.controls = true;
     element.preload = 'metadata';
-  } else if (isBrowserPreviewableDocument(mime)) {
+  } else if (mime.startsWith('application/pdf')) {
     element = document.createElement('iframe');
     element.title = `${file.originalName} preview`;
-    element.style.width = '100%';
-    element.style.height = 'min(70vh, 760px)';
-    element.style.minHeight = '360px';
-    element.style.border = '0';
-    element.style.background = '#fff';
+    element.className = 'document-preview';
     element.loading = 'eager';
-    element.src = mime.startsWith('application/pdf') && !allowDownload
-      ? `${src}#toolbar=0&navpanes=0`
-      : src;
+    element.src = allowDownload ? src : `${src}#toolbar=0&navpanes=0`;
+  } else if (isTextPreviewable(mime)) {
+    return createTextPreview(file, allowDownload);
   } else {
     return createDocumentPlaceholder(allowDownload);
   }
@@ -321,10 +317,35 @@ async function createPreview(file, allowDownload) {
   return element;
 }
 
-function isBrowserPreviewableDocument(mime) {
-  return mime.startsWith('application/pdf')
-    || mime.startsWith('text/')
-    || mime.startsWith('application/json');
+function isTextPreviewable(mime) {
+  return mime.startsWith('text/') || mime.startsWith('application/json');
+}
+
+async function createTextPreview(file, allowDownload) {
+  const pre = document.createElement('pre');
+  pre.className = 'text-preview';
+  pre.dataset.testid = 'media-preview';
+  pre.setAttribute('tabindex', '0');
+  pre.setAttribute('aria-label', `${file.originalName} text preview`);
+  // Inline fallback beats theme inheritance / UA color-scheme quirks.
+  pre.style.backgroundColor = '#f4f1eb';
+  pre.style.color = '#181a1c';
+
+  try {
+    const response = await fetch(file.contentUrl);
+    if (!response.ok) throw new Error('Failed to load preview.');
+    // Trust the stored MIME (filetype), not the original filename, for text rendering.
+    const text = await response.text();
+    const maxChars = 500_000;
+    pre.textContent = text.length > maxChars
+      ? `${text.slice(0, maxChars)}\n\n… preview truncated …`
+      : text;
+  } catch {
+    pre.textContent = 'Could not load text preview.';
+  }
+
+  if (!allowDownload) applyPreviewOnlyProtections(pre);
+  return pre;
 }
 
 function createDocumentPlaceholder(allowDownload) {

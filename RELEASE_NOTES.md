@@ -4,6 +4,7 @@
 
 ### Changed
 
+- UTF-8 text uploads are accepted regardless of filename extension. Known text extensions still map to TXT/CSV/Markdown/JSON MIME types; all other UTF-8 text is stored and served as `text/plain` with `nosniff`.
 - Upload settings grid is now three columns on desktop (TTL / password / Allow Download at roughly 20% / 60% / 20%).
 - On mobile, TTL and Allow Download share the first row; the password field spans the row below.
 - Allow Download copy is a single label, vertically centered to the TTL input control.
@@ -32,8 +33,8 @@
 ### Security / behavior
 
 - Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames, independently for every file in a stash.
-- Plain-text formats are accepted only for a small extension allowlist and only after streaming UTF-8/control-character validation; they are served with an explicit non-executable MIME type and `X-Content-Type-Options: nosniff`.
-- HTML and SVG remain unsupported as upload formats.
+- Plain-text uploads no longer require an allowlisted extension: any file that fails binary type detection must still pass streaming UTF-8/control-character validation, and is served with an explicit non-executable MIME type and `X-Content-Type-Options: nosniff`.
+- HTML-looking UTF-8 content may be uploaded under any name but is never served as `text/html`. Typical SVG remains rejected via binary type detection.
 - Multi-file uploads are all-or-nothing: validation failure removes temporary/partially moved files rather than creating a partial stash.
 - Server-side file count, per-file size, and aggregate stash size are all bounded. Clearly oversized multipart requests with a known Content-Length are rejected before upload parsing, and aggregate file bytes are checked again before commit.
 - Multi-file ZIP archives use streaming DEFLATE and are never persisted as derived files on the server.

@@ -434,9 +434,10 @@ async function detectAllowedUpload(filePath, originalName) {
     return ext ? { mime: detected.mime, ext } : null;
   }
 
+  if (!(await isUtf8TextFile(filePath))) return null;
+
   const textType = allowedTextExtensions.get(path.extname(String(originalName || '')).toLowerCase());
-  if (!textType || !(await isUtf8TextFile(filePath))) return null;
-  return textType;
+  return textType || { mime: 'text/plain; charset=utf-8', ext: 'txt' };
 }
 
 async function isUtf8TextFile(filePath) {
