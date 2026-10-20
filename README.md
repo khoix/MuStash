@@ -13,6 +13,7 @@ The name is both a nod to a **mustache** and to **µ (micro) + stash** — a sma
 - Image, video, and audio previews on desktop and mobile.
 - PDF and UTF-8 text-document previews in the browser.
 - Common document uploads including DOCX, XLSX, PPTX, ODT, ODS, and ODP; formats without a browser-native preview remain downloadable.
+- Compressed archives including ZIP, 7Z, TAR, TAR.GZ / TGZ, GZ, BZ2, XZ, ZST, RAR, and other common archive formats. MuStash stores and downloads the archive as-is and does not unpack it.
 - Selected files can be removed individually from the pre-upload list before they are stashed.
 - Recipient previews show the stash name in the top-left eyebrow, keep status tags in the top-right, and show aggregate size/file count plus expiration below the preview.
 - Multi-file stashes provide a recipient file selector so each item can be previewed independently.
@@ -38,7 +39,10 @@ MuStash currently accepts:
 - Video: MP4, WebM
 - Audio: MP3, WAV, OGG, M4A/MP4 audio, AAC, FLAC
 - Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP
+- Archives: ZIP, 7Z, TAR, GZIP (including TAR.GZ and TGZ), BZIP2, XZ, Zstandard, RAR, lzip, LZ4, Unix compress (`.Z`), CAB, ARJ, CPIO, ACE, LZH, and Unix `ar`
 - UTF-8 text: any extension (or none), after streaming UTF-8 validation; known text extensions keep their MIME type (TXT, CSV, Markdown, JSON), others are stored as `text/plain`
+
+Names such as `.tar.bz2`, `.tar.xz`, and `.tar.zst` are accepted from the outer compression format. `.tar.gz` and `.tgz` are recognized specifically when the gzip payload is a tar archive. The original filename is what recipients download. Archive contents are not extracted or previewed individually.
 
 HTML and SVG are not accepted as active/browser-executable formats. UTF-8 content that happens to look like HTML is still allowed and is always served as non-executable text (`text/plain` + `nosniff`). Typical SVG files are rejected by binary type detection.
 
@@ -47,7 +51,8 @@ HTML and SVG are not accepted as active/browser-executable formats. UTF-8 conten
 MuStash intentionally does **not** trust filenames or browser-provided MIME types for binary files.
 
 - Binary file type is detected from file contents with `file-type` independently for every uploaded file.
-- Only an allowlist of image/audio/video/document formats is accepted for files with a detectable binary type.
+- Only an allowlist of image/audio/video/document/archive formats is accepted for files with a detectable binary type.
+- Archives are never unpacked. Type detection may inspect a bounded sample of a ZIP or gzip payload so Office files and `.tar.gz` archives can be told apart from a generic ZIP or gzip, and that sample is discarded after detection.
 - Files without a detectable binary type are accepted when they pass streaming UTF-8 validation and contain no binary control characters, regardless of filename extension. Known text extensions map to their usual MIME types; everything else is stored as `text/plain`.
 - Uploaded text is always served using an explicit non-executable text/JSON MIME type together with `X-Content-Type-Options: nosniff`; text content is never inserted into MuStash's page as HTML.
 - Uploaded files receive server-generated UUID filenames; original filenames and stash names are display metadata only.
@@ -71,7 +76,7 @@ When **Allow Download** is unchecked, MuStash stores `allowDownload: false` with
 - The viewer disables media dragging and suppresses the media context menu.
 - Audio/video elements request browser controls that omit download and remote-playback actions, and disable Picture-in-Picture / remote playback where the browser exposes those controls.
 - Mobile touch-callout and image dragging are suppressed where supported.
-- PDF/text previews use the browser's native document rendering; Office/OpenDocument formats that lack a native browser preview show a document placeholder when downloads are disabled.
+- PDF/text previews use the browser's native document rendering; Office/OpenDocument formats that lack a native browser preview show a document placeholder when downloads are disabled. Archives show an archive placeholder in either download mode and are not rendered inline.
 
 These controls are **deterrents, not DRM**. A browser must receive file bytes in order to preview them, so a determined recipient can still recover those bytes using developer tools, network inspection, browser internals, or a custom client. Web pages also cannot reliably prevent operating-system screenshots or screen recording. Browser-native PDF/document viewers may expose capabilities that MuStash cannot fully suppress.
 
@@ -153,7 +158,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers single- and multi-file uploads/previews, named stashes, removable pre-upload selections, recipient share layout, selective downloads and streamed ZIP responses, mobile ZIP CacheStorage reuse, password-protected shares, supported text/PDF/DOCX documents, server-side active-content rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
+CI runs the same suite against desktop Chromium and a Pixel 7 mobile profile. The suite covers single- and multi-file uploads/previews, named stashes, removable pre-upload selections, recipient share layout, selective downloads and streamed ZIP responses, mobile ZIP CacheStorage reuse, password-protected shares, supported text/PDF/DOCX documents, compressed archive uploads, server-side active-content rejection, Allow Download defaults, preview-only server enforcement and browser deterrents, desktop-only drag/drop behavior, menu behavior, the future Settings placeholder, TTL steppers, TTL select-on-focus, settings-grid layout, password-field lock icon, and persisted appearance preferences.
 
 ## Storage lifecycle
 

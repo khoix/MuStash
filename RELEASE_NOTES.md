@@ -18,6 +18,7 @@
 
 ### Added
 
+- Added compressed archive uploads: ZIP, 7Z, TAR, GZIP, TAR.GZ / TGZ, BZIP2, XZ, Zstandard, RAR, lzip, LZ4, Unix compress, CAB, ARJ, CPIO, ACE, LZH, and Unix `ar`. Archives are identified from file contents, stored whole, and offered as downloads. MuStash does not unpack them.
 - Added an **Allow Download** upload option, enabled by default for backward-compatible sharing behavior.
 - Preview-only shares now expose a **Preview only** indicator instead of a Download action.
 - Added common document support: PDF, DOCX, XLSX, PPTX, ODT, ODS, and ODP.
@@ -33,6 +34,7 @@
 ### Security / behavior
 
 - Binary formats continue to be validated from file contents instead of trusting browser MIME types or filenames, independently for every file in a stash.
+- Archive uploads use the same content allowlist. A gzip payload that is a tar archive is stored as `tar.gz` with MIME `application/gzip`; other compound names such as `.tar.bz2` keep their outer compression type. The original filename is what recipients download. Archives are not extracted, listed, or executed.
 - Plain-text uploads no longer require an allowlisted extension: any file that fails binary type detection must still pass streaming UTF-8/control-character validation, and is served with an explicit non-executable MIME type and `X-Content-Type-Options: nosniff`.
 - HTML-looking UTF-8 content may be uploaded under any name but is never served as `text/html`. Typical SVG remains rejected via binary type detection.
 - Multi-file uploads are all-or-nothing: validation failure removes temporary/partially moved files rather than creating a partial stash.

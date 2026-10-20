@@ -3,6 +3,25 @@ import { deriveAccessKey } from './crypto.js';
 
 initTheme();
 
+const ARCHIVE_MIMES = new Set([
+  'application/zip',
+  'application/x-7z-compressed',
+  'application/gzip',
+  'application/x-tar',
+  'application/x-bzip2',
+  'application/x-xz',
+  'application/zstd',
+  'application/x-rar-compressed',
+  'application/lzip',
+  'application/x-lz4',
+  'application/x-compress',
+  'application/vnd.ms-cab-compressed',
+  'application/x-arj',
+  'application/x-cpio',
+  'application/x-ace-compressed',
+  'application/x-lzh-compressed',
+  'application/x-unix-archive'
+]);
 const ZIP_CACHE_NAME = 'mustash-zips-v1';
 const ZIP_CACHE_TTL_MS = 30 * 60 * 1000;
 const mobileZipCacheQuery = matchMedia('(hover: none) and (pointer: coarse)');
@@ -307,6 +326,8 @@ async function createPreview(file, allowDownload) {
     element.src = allowDownload ? src : `${src}#toolbar=0&navpanes=0`;
   } else if (isTextPreviewable(mime)) {
     return createTextPreview(file, allowDownload);
+  } else if (isArchive(mime)) {
+    return createArchivePlaceholder(allowDownload);
   } else {
     return createDocumentPlaceholder(allowDownload);
   }
@@ -319,6 +340,10 @@ async function createPreview(file, allowDownload) {
 
 function isTextPreviewable(mime) {
   return mime.startsWith('text/') || mime.startsWith('application/json');
+}
+
+function isArchive(mime) {
+  return ARCHIVE_MIMES.has(mime.split(';', 1)[0]);
 }
 
 async function createTextPreview(file, allowDownload) {
@@ -349,25 +374,43 @@ async function createTextPreview(file, allowDownload) {
 }
 
 function createDocumentPlaceholder(allowDownload) {
+  return createDownloadPlaceholder({
+    testId: 'document-placeholder',
+    heading: 'Document ready',
+    allowDownload,
+    downloadCopy: 'This file type does not have a browser-native preview. Use Download to open it in a compatible app.',
+    previewOnlyCopy: 'This file type does not have a browser-native preview, and downloads are disabled for this stash.'
+  });
+}
+
+function createArchivePlaceholder(allowDownload) {
+  return createDownloadPlaceholder({
+    testId: 'archive-placeholder',
+    heading: 'Archive ready',
+    allowDownload,
+    downloadCopy: 'This compressed file does not have a browser preview. Use Download to save it.',
+    previewOnlyCopy: 'This compressed file does not have a browser preview, and downloads are disabled for this stash.'
+  });
+}
+
+function createDownloadPlaceholder({ testId, heading, allowDownload, downloadCopy, previewOnlyCopy }) {
   const wrapper = document.createElement('div');
   wrapper.className = 'center-state';
   wrapper.style.minHeight = '260px';
-  wrapper.dataset.testid = 'document-placeholder';
+  wrapper.dataset.testid = testId;
 
   const mark = document.createElement('div');
   mark.className = 'big-mark';
   mark.setAttribute('aria-hidden', 'true');
   mark.textContent = '≡';
 
-  const heading = document.createElement('h2');
-  heading.textContent = 'Document ready';
+  const headingEl = document.createElement('h2');
+  headingEl.textContent = heading;
 
   const copy = document.createElement('p');
-  copy.textContent = allowDownload
-    ? 'This file type does not have a browser-native preview. Use Download to open it in a compatible app.'
-    : 'This file type does not have a browser-native preview, and downloads are disabled for this stash.';
+  copy.textContent = allowDownload ? downloadCopy : previewOnlyCopy;
 
-  wrapper.append(mark, heading, copy);
+  wrapper.append(mark, headingEl, copy);
   return wrapper;
 }
 

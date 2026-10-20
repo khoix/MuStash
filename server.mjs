@@ -58,7 +58,25 @@ const allowedTypes = new Map([
   ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'pptx'],
   ['application/vnd.oasis.opendocument.text', 'odt'],
   ['application/vnd.oasis.opendocument.spreadsheet', 'ods'],
-  ['application/vnd.oasis.opendocument.presentation', 'odp']
+  ['application/vnd.oasis.opendocument.presentation', 'odp'],
+  // Archives are stored whole and never extracted. gzip covers both .gz and .tar.gz.
+  ['application/zip', 'zip'],
+  ['application/x-7z-compressed', '7z'],
+  ['application/gzip', 'gz'],
+  ['application/x-tar', 'tar'],
+  ['application/x-bzip2', 'bz2'],
+  ['application/x-xz', 'xz'],
+  ['application/zstd', 'zst'],
+  ['application/x-rar-compressed', 'rar'],
+  ['application/lzip', 'lz'],
+  ['application/x-lz4', 'lz4'],
+  ['application/x-compress', 'Z'],
+  ['application/vnd.ms-cab-compressed', 'cab'],
+  ['application/x-arj', 'arj'],
+  ['application/x-cpio', 'cpio'],
+  ['application/x-ace-compressed', 'ace'],
+  ['application/x-lzh-compressed', 'lzh'],
+  ['application/x-unix-archive', 'ar']
 ]);
 
 const allowedTextExtensions = new Map([
@@ -181,7 +199,7 @@ export async function createApp() {
 
         const detectedTypes = await Promise.all(incoming.map((file) => detectAllowedUpload(file.path, file.originalname)));
         if (detectedTypes.some((detected) => !detected)) {
-          return res.status(415).json({ error: 'Unsupported file type. Use a supported image, audio, video, PDF, Office/OpenDocument, or UTF-8 text format.' });
+          return res.status(415).json({ error: 'Unsupported file type. Use a supported image, audio, video, PDF, Office/OpenDocument, archive, or UTF-8 text format.' });
         }
 
         const ttlHours = parseTtl(req.body.ttlHours);
@@ -430,15 +448,20 @@ async function resolveServerSecret() {
 
 async function detectAllowedUpload(filePath, originalName) {
   const detected = await fileTypeFromFile(filePath);
-  if (detected) {
-    const ext = allowedTypes.get(detected.mime);
-    return ext ? { mime: detected.mime, ext } : null;
-  }
+  if (detected) return allowedBinaryType(detected);
 
   if (!(await isUtf8TextFile(filePath))) return null;
 
   const textType = allowedTextExtensions.get(path.extname(String(originalName || '')).toLowerCase());
   return textType || { mime: 'text/plain; charset=utf-8', ext: 'txt' };
+}
+
+function allowedBinaryType(detected) {
+  const fallbackExt = allowedTypes.get(detected.mime);
+  if (!fallbackExt) return null;
+  // file-type reports tar.gz for a gzip whose payload is a tar archive; the MIME stays application/gzip.
+  const ext = detected.mime === 'application/gzip' && detected.ext === 'tar.gz' ? 'tar.gz' : fallbackExt;
+  return { mime: detected.mime, ext };
 }
 
 async function isUtf8TextFile(filePath) {
